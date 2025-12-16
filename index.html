@@ -21,11 +21,13 @@
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.4s ease-out forwards',
+                        'fade-out': 'fadeOut 0.4s ease-in forwards',
                         'slide-up': 'slideUp 0.5s ease-out',
                         'zoom-in': 'zoomIn 0.3s ease-out',
                     },
                     keyframes: {
                         fadeIn: { '0%': { opacity: '0' }, '100%': { opacity: '1' } },
+                        fadeOut: { '0%': { opacity: '1' }, '100%': { opacity: '0' } },
                         slideUp: { '0%': { transform: 'translateY(20px)', opacity: '0' }, '100%': { transform: 'translateY(0)', opacity: '1' } },
                         zoomIn: { '0%': { transform: 'scale(0.95)', opacity: '0' }, '100%': { transform: 'scale(1)', opacity: '1' } }
                     }
@@ -64,7 +66,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'miletracker-v30'; // Incremented version
+        const appId = 'miletracker-v31'; // Incremented version for safety
 
         // --- Assets Configuration ---
         const LogoFiles = {
@@ -101,11 +103,15 @@
         // --- Components ---
         const AirlineLogo = ({ id, colorClass }) => {
             const [imgError, setImgError] = useState(false);
+            
+            // Fix: Extract base ID from the potentially unique ID (e.g., "ci_123456" -> "ci")
+            const logoKey = id ? id.split('_')[0] : '';
+
             return React.createElement("div", {className: "w-14 h-14 bg-white rounded-full p-2 shadow-sm flex items-center justify-center overflow-hidden"}, 
                 imgError ? 
-                React.createElement("div", {className: `w-full h-full ${colorClass}`}, SvgLogos[id]) : 
+                React.createElement("div", {className: `w-full h-full ${colorClass}`}, SvgLogos[logoKey] || SvgLogos[id]) : 
                 React.createElement("img", {
-                    src: LogoFiles[id], 
+                    src: LogoFiles[logoKey] || LogoFiles[id], 
                     alt: id, 
                     className: "w-full h-full object-contain",
                     onError: () => setImgError(true)
@@ -131,13 +137,14 @@
             );
         };
 
+        // Added 'code' to templates to fix display garble
         const AIRLINE_TEMPLATES = [
-            { id: 'ci', name: '中華航空', enName: 'China Airlines', alliance: 'skyteam', program: '華夏會員', tier: '金卡', memberId: '', tierOptions: ['華夏會員', '金卡', '翡翠卡', '晶鑽卡'], cardClass: 'bg-gradient-to-br from-[#4a1050] to-[#862562] text-white', logoColor: 'text-purple-900', expiryRule: { type: 'activity', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'br', name: '長榮航空', enName: 'EVA Air', alliance: 'star', program: '無限萬哩遊', tier: '銀卡', memberId: '', tierOptions: ['綠卡', '銀卡', '金卡', '鑽石卡'], cardClass: 'bg-gradient-to-br from-[#005230] to-[#00824b] text-white', logoColor: 'text-green-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'jx', name: '星宇航空', enName: 'STARLUX Airlines', alliance: null, program: 'COSMILE', tier: 'Adventurer', memberId: '', tierOptions: ['Traveler', 'Adventurer', 'Explorer', 'Insighter'], cardClass: 'bg-gradient-to-br from-[#59493f] to-[#8c735d] text-white', logoColor: 'text-yellow-700', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'nh', name: 'ANA全日空', enName: 'All Nippon Airways', alliance: 'star', program: 'Mileage Club', tier: 'Platinum', memberId: '', tierOptions: ['一般會員', 'Bronze', 'Platinum', 'Diamond'], cardClass: 'bg-gradient-to-br from-[#003d7c] to-[#007cc2] text-white', logoColor: 'text-blue-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'jl', name: '日本航空', enName: 'Japan Airlines', alliance: 'oneworld', program: 'JAL Mileage Bank', tier: 'Crystal', memberId: '', tierOptions: ['普通會員', 'Crystal', 'Sapphire', 'Diamond', 'JGC Premier'], cardClass: 'bg-gradient-to-br from-[#8a0000] to-[#d60000] text-white', logoColor: 'text-red-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'cx', name: '國泰航空', enName: 'Cathay Pacific', alliance: 'oneworld', program: '亞洲萬里通', tier: 'Green', memberId: '', tierOptions: ['Green', 'Silver', 'Gold', 'Diamond'], cardClass: 'bg-gradient-to-br from-[#004e4e] to-[#007a7a] text-white', logoColor: 'text-teal-800', expiryRule: { type: 'activity', value: 18, unit: 'month' }, records: [], pending: [] },
+            { id: 'ci', code: 'CI', name: '中華航空', enName: 'China Airlines', alliance: 'skyteam', program: '華夏會員', tier: '金卡', memberId: '', tierOptions: ['華夏會員', '金卡', '翡翠卡', '晶鑽卡'], cardClass: 'bg-gradient-to-br from-[#4a1050] to-[#862562] text-white', logoColor: 'text-purple-900', expiryRule: { type: 'activity', value: 36, unit: 'month' }, records: [], pending: [] },
+            { id: 'br', code: 'BR', name: '長榮航空', enName: 'EVA Air', alliance: 'star', program: '無限萬哩遊', tier: '銀卡', memberId: '', tierOptions: ['綠卡', '銀卡', '金卡', '鑽石卡'], cardClass: 'bg-gradient-to-br from-[#005230] to-[#00824b] text-white', logoColor: 'text-green-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
+            { id: 'jx', code: 'JX', name: '星宇航空', enName: 'STARLUX Airlines', alliance: null, program: 'COSMILE', tier: 'Adventurer', memberId: '', tierOptions: ['Traveler', 'Adventurer', 'Explorer', 'Insighter'], cardClass: 'bg-gradient-to-br from-[#59493f] to-[#8c735d] text-white', logoColor: 'text-yellow-700', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
+            { id: 'nh', code: 'NH', name: 'ANA全日空', enName: 'All Nippon Airways', alliance: 'star', program: 'Mileage Club', tier: 'Platinum', memberId: '', tierOptions: ['一般會員', 'Bronze', 'Platinum', 'Diamond'], cardClass: 'bg-gradient-to-br from-[#003d7c] to-[#007cc2] text-white', logoColor: 'text-blue-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
+            { id: 'jl', code: 'JL', name: '日本航空', enName: 'Japan Airlines', alliance: 'oneworld', program: 'JAL Mileage Bank', tier: 'Crystal', memberId: '', tierOptions: ['普通會員', 'Crystal', 'Sapphire', 'Diamond', 'JGC Premier'], cardClass: 'bg-gradient-to-br from-[#8a0000] to-[#d60000] text-white', logoColor: 'text-red-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
+            { id: 'cx', code: 'CX', name: '國泰航空', enName: 'Cathay Pacific', alliance: 'oneworld', program: '亞洲萬里通', tier: 'Green', memberId: '', tierOptions: ['Green', 'Silver', 'Gold', 'Diamond'], cardClass: 'bg-gradient-to-br from-[#004e4e] to-[#007a7a] text-white', logoColor: 'text-teal-800', expiryRule: { type: 'activity', value: 18, unit: 'month' }, records: [], pending: [] },
         ];
 
         // --- Helpers ---
@@ -159,8 +166,6 @@
             if (isNaN(recordDate.getTime())) return { text: '-', color: 'text-gray-400 bg-gray-50' };
             
             let targetDate;
-            
-            // Determine the base date for calculation
             if (rule.type === 'fixed') {
                 targetDate = new Date(recordDate);
             } else if (rule.type === 'activity') {
@@ -169,17 +174,13 @@
                 targetDate = new Date(latestDate);
             }
             
-            // Add duration
             if (rule.unit === 'year') {
                 targetDate.setFullYear(targetDate.getFullYear() + parseInt(rule.value));
             } else {
                 targetDate.setMonth(targetDate.getMonth() + parseInt(rule.value));
             }
 
-            // Set to the last day of that month
-            // new Date(year, month + 1, 0) gets the last day of "month"
-            const expiryDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0);
-
+            const expiryDate = new Date(targetDate.getFullYear(), targetDate.getMonth() + 1, 0); // Last day of month
             const today = new Date();
             const diffTime = expiryDate - today;
             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -256,9 +257,8 @@
             const currentBalance = airline.records.reduce((acc, r) => acc + (parseInt(r.amount)||0), 0);
             const pendingSum = airline.pending.reduce((acc, i) => acc + (parseInt(i.amount)||0), 0);
 
-            // 修改：詳細頁面與首頁卡片大小一致
-            // 移除 detail view 的 max-w-sm，統一使用 w-full 配合外部容器控制
-            // 保持 aspect-[1.58/1] 信用卡比例
+            // Fix: Use consistent classes for home and detail to prevent compression issues
+            // isDetail will simply be wrapper, but style is identical
             const wrapperClass = isDetail 
                 ? "w-full mx-auto shadow-none transition-all duration-500 h-auto aspect-[1.58/1]" 
                 : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group h-auto aspect-[1.58/1]";
@@ -269,7 +269,8 @@
                     React.createElement(AirlineLogo, {id: airline.id, colorClass: airline.logoColor}),
                     React.createElement("div", {className: "text-right"},
                         React.createElement("div", {className: "text-lg font-bold tracking-wide leading-tight text-white drop-shadow-sm"}, airline.name),
-                        React.createElement("div", {className: "text-[10px] font-mono opacity-60 uppercase tracking-widest mt-1"}, airline.code || airline.id.toUpperCase())
+                        // Fix: display airline.code to prevent ID garble
+                        React.createElement("div", {className: "text-[10px] font-mono opacity-60 uppercase tracking-widest mt-1"}, airline.code || airline.id.split('_')[0].toUpperCase())
                     )
                 ),
                 React.createElement("div", {className: "relative z-10 mt-auto mb-4 flex-1 flex flex-col justify-end"},
@@ -376,6 +377,7 @@
             const [isSettingsClosing, setIsSettingsClosing] = useState(false);
             const [isEditorClosing, setIsEditorClosing] = useState(false);
             const [isConfirmModalClosing, setIsConfirmModalClosing] = useState(false);
+            const [isLoggingOut, setIsLoggingOut] = useState(false); // New State for logout animation
 
             useEffect(() => {
                 if (!user || !db) return;
@@ -387,6 +389,7 @@
                 return () => unsubscribe();
             }, [user]);
 
+            // Auto-save useEffect
             useEffect(() => {
                 if (!user || !db) return;
                 const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'mileage_data', 'profile');
@@ -411,7 +414,7 @@
                 const newAirline = { ...template, id: `${template.id}_${Date.now()}` }; // Unique ID
                 setAirlines(prev => [...prev, newAirline]);
                 setIsAddAirlineOpen(false);
-                showToast(`已新增 ${template.name}`);
+                showToast(`已新增 ${template.name}，並已自動儲存`);
             };
 
             const handleDeleteAirline = (id) => {
@@ -429,6 +432,13 @@
                         showToast('卡片已刪除', 'success');
                     }
                 });
+            };
+
+            const handleLogoutClick = () => {
+                setIsLoggingOut(true);
+                setTimeout(() => {
+                    onLogout();
+                }, 500);
             };
 
             const saveEditor = (formData) => {
@@ -465,11 +475,12 @@
                 showToast('哩程已正式入帳');
             };
 
-            return React.createElement("div", {className: "min-h-screen bg-[#f8f9fa] text-slate-800 font-sans animate-in fade-in duration-700 relative pb-10"},
+            return React.createElement("div", {className: `min-h-screen bg-[#f8f9fa] text-slate-800 font-sans relative pb-10 transition-opacity duration-500 ${isLoggingOut ? 'opacity-0' : 'opacity-100 animate-fade-in'}`},
                 
                 // Logout Button
                 !selectedAirlineId && React.createElement("div", {className: "absolute top-4 right-4 z-20"},
-                    React.createElement("button", {onClick: onLogout, className: "w-10 h-10 bg-white/50 backdrop-blur-md rounded-full shadow-sm text-slate-500 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300"},
+                    // Fix: Add shadow-lg for better visibility
+                    React.createElement("button", {onClick: handleLogoutClick, className: "w-10 h-10 bg-white/50 backdrop-blur-md rounded-full shadow-lg text-slate-500 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300"},
                         React.createElement(LogOut, {size: 18})
                     )
                 ),
@@ -494,7 +505,8 @@
                 ),
 
                 // Detail View
-                selectedAirlineId && activeAirlineData && React.createElement("div", {className: `fixed inset-0 z-50 bg-[#f8f9fa] flex flex-col transition-all duration-500 ${isDetailClosing ? 'opacity-0' : 'opacity-100 animate-fade-in'}`},
+                // Fix: Added transition duration-500 and ensured opacity-0 is applied for fade out effect
+                selectedAirlineId && activeAirlineData && React.createElement("div", {className: `fixed inset-0 z-50 bg-[#f8f9fa] flex flex-col transition-all duration-500 ${isDetailClosing ? 'opacity-0 pointer-events-none' : 'opacity-100 animate-fade-in'}`},
                     React.createElement("div", {className: "absolute top-0 left-0 w-full z-20 px-5 py-6 flex justify-between items-center pointer-events-none"},
                         React.createElement("button", {onClick: closeDetail, className: "pointer-events-auto w-10 h-10 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-slate-600 flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110 active:scale-95"}, React.createElement(ChevronLeft, {size: 20})),
                         React.createElement("button", {onClick: () => { setIsSettingsClosing(false); setIsSettingsOpen(true); }, className: "pointer-events-auto w-10 h-10 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-slate-600 flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110 active:scale-95"}, React.createElement(Settings, {size: 20}))
