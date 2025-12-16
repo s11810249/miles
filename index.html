@@ -214,7 +214,8 @@
         const AirlineLogo = ({ id, colorClass }) => {
             const [imgError, setImgError] = useState(false);
             const logoKey = id ? id.split('_')[0] : '';
-            return React.createElement("div", {className: "w-11 h-11 bg-white rounded-full p-2 shadow-sm flex items-center justify-center overflow-hidden"}, // Reduced size to w-11 h-11
+            // Reduced to w-11 h-11
+            return React.createElement("div", {className: "w-11 h-11 bg-white rounded-full p-2 shadow-sm flex items-center justify-center overflow-hidden"}, 
                 imgError ? 
                 React.createElement("div", {className: `w-full h-full ${colorClass}`}, SvgLogos[logoKey] || SvgLogos[id]) : 
                 React.createElement("img", { src: LogoFiles[logoKey] || LogoFiles[id], alt: id, className: "w-full h-full object-contain", onError: () => setImgError(true) })
@@ -331,12 +332,10 @@
         const AirlineCard = ({ airline, onClick, isDetail = false }) => {
             const currentBalance = airline.records.reduce((acc, r) => acc + (parseInt(r.amount)||0), 0);
             
-            // Adjusted aspect ratio and margin for desktop
-            // Removed fixed height, use min-h for content fitting
-            // Used h-auto so it grows with content on mobile, pb-6 for breathing room
+            // Fix: Use h-auto and min-h to allow growth, remove fixed aspect ratio on mobile
             const wrapperClass = isDetail 
-                ? "w-full mx-auto shadow-none transition-all duration-500 h-auto min-h-[220px]" 
-                : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group h-auto min-h-[220px] aspect-[1.586/1] md:aspect-auto";
+                ? "w-full mx-auto shadow-none transition-all duration-500 h-auto min-h-[200px]" 
+                : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group h-auto min-h-[200px] md:aspect-[1.586/1]";
 
             return React.createElement("div", {onClick: onClick, className: `${airline.cardClass} relative rounded-2xl p-6 pb-6 overflow-hidden flex flex-col justify-between ${wrapperClass}`},
                 React.createElement("div", {className: `absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white opacity-[0.1] rounded-full blur-xl transition-opacity duration-700 ${!isDetail ? 'group-hover:opacity-[0.15]' : ''}`}),
@@ -350,8 +349,8 @@
                     )
                 ),
                 
-                // Middle: Accumulated Miles (Moved up slightly, tighter spacing)
-                React.createElement("div", {className: "relative z-10 mt-auto mb-2 flex-1 flex flex-col justify-center"},
+                // Middle: Accumulated Miles (Moved up more with mt-4)
+                React.createElement("div", {className: "relative z-10 mt-4 mb-0 pt-0 flex-1 flex flex-col justify-center"},
                     React.createElement("div", {className: "text-[10px] uppercase opacity-70 tracking-widest mb-0 leading-none"}, "累積哩程"),
                     React.createElement("div", {className: "flex items-end justify-between"},
                         React.createElement("span", {className: "text-3xl font-black tracking-tight drop-shadow-md font-sans"}, formatNumber(currentBalance)),
@@ -359,8 +358,8 @@
                     )
                 ),
                 
-                // Bottom: Tier and Program with Divider
-                React.createElement("div", {className: "relative z-10 pt-3 border-t border-white/15 flex justify-between items-end mt-2"}, 
+                // Bottom: Tier and Program with Separator Line
+                React.createElement("div", {className: "relative z-10 pt-3 border-t border-white/15 flex justify-between items-end mt-4"}, 
                     React.createElement("div", {className: "flex flex-col gap-1"},
                         React.createElement("div", {className: "inline-flex items-center gap-1.5 px-0 py-1 rounded-md text-sm font-bold tracking-wide text-white/90"},
                             airline.tier
@@ -605,7 +604,7 @@
                     React.createElement("button", {onClick: handleLogoutClick, className: "w-10 h-10 bg-white/50 backdrop-blur-md rounded-full shadow-lg text-slate-500 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300"}, React.createElement(LogOut, {size: 18}))
                 ),
 
-                !selectedAirlineId && React.createElement("div", {className: "max-w-5xl mx-auto px-6 py-8 space-y-8 pt-16 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-32"},
+                !selectedAirlineId && React.createElement("div", {className: "max-w-4xl mx-auto px-6 py-8 space-y-8 pt-16 animate-in fade-in slide-in-from-bottom-4 duration-700 pb-32"},
                     
                     React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden"},
                         React.createElement("div", {className: "absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-16 -mt-16 pointer-events-none"}),
@@ -639,8 +638,7 @@
                         ),
                         airlines.length === 0 ? 
                         React.createElement("div", {className: "flex flex-col items-center justify-center py-20 text-center opacity-50"}, React.createElement(CreditCard, {className: "w-16 h-16 text-gray-300 mb-4"}), React.createElement("p", {className: "text-lg font-bold text-gray-400"}, "尚未新增任何卡片"), React.createElement("button", {onClick: () => setIsAddAirlineOpen(true), className: "mt-4 text-blue-500 font-bold text-sm hover:underline"}, "立即新增")) :
-                        // Updated to 2 columns on desktop
-                        React.createElement("div", {className: "grid grid-cols-1 md:grid-cols-2 gap-6 pb-10"}, airlines.map(airline => React.createElement(AirlineCard, {key: airline.id, airline: airline, onClick: () => setSelectedAirlineId(airline.id)})))
+                        React.createElement("div", {className: "grid grid-cols-1 lg:grid-cols-2 gap-6 pb-10"}, airlines.map(airline => React.createElement(AirlineCard, {key: airline.id, airline: airline, onClick: () => setSelectedAirlineId(airline.id)})))
                     )
                 ),
 
