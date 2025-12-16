@@ -81,7 +81,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'miletracker-v41'; // Version bump due to data structure/UI changes
+        const appId = 'miletracker-release-v1'; // Release Version
 
         // --- Assets ---
         const LogoFiles = { ci: 'files/CI_logo.svg', br: 'files/BR_logo.svg', jx: 'files/JX_logo.svg', nh: 'files/NH_logo.svg', jl: 'files/JL_logo.svg', cx: 'files/CX_logo.svg' };
@@ -101,6 +101,18 @@
         };
 
         // --- Helpers ---
+        // UTC+8 Date Helper
+        const getTaiwanDate = () => {
+            const date = new Date();
+            // Get date in Taiwan time
+            const taiwanDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Taipei' }));
+            // Format to YYYY-MM-DD
+            const year = taiwanDate.getFullYear();
+            const month = String(taiwanDate.getMonth() + 1).padStart(2, '0');
+            const day = String(taiwanDate.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        };
+
         const formatDateForInput = (date) => date ? new Date(date).toISOString().split('T')[0] : '';
         const formatDateForDisplay = (dateStr) => dateStr ? dateStr.replace(/-/g, '/') : '-';
         const formatNumber = (num) => new Intl.NumberFormat('zh-TW').format(num);
@@ -311,7 +323,9 @@
 
         const AirlineCard = ({ airline, onClick, isDetail = false }) => {
             const currentBalance = airline.records.reduce((acc, r) => acc + (parseInt(r.amount)||0), 0);
-            const wrapperClass = isDetail ? "w-full mx-auto shadow-none transition-all duration-500 h-auto aspect-[1.58/1]" : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group h-auto aspect-[1.58/1]";
+            const wrapperClass = isDetail 
+                ? "w-full mx-auto shadow-none transition-all duration-500 h-auto aspect-[1.58/1]" 
+                : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group h-auto aspect-[1.58/1]";
 
             return React.createElement("div", {onClick: onClick, className: `${airline.cardClass} relative rounded-2xl p-5 sm:p-6 overflow-hidden flex flex-col justify-between ${wrapperClass}`},
                 React.createElement("div", {className: `absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white opacity-[0.1] rounded-full blur-xl transition-opacity duration-700 ${!isDetail ? 'group-hover:opacity-[0.15]' : ''}`}),
@@ -319,10 +333,12 @@
                     React.createElement(AirlineLogo, {id: airline.id, colorClass: airline.logoColor}),
                     React.createElement("div", {className: "text-right"},
                         React.createElement("div", {className: "text-lg font-bold tracking-wide leading-tight text-white drop-shadow-sm"}, airline.name),
-                        React.createElement("div", {className: "text-xs font-mono opacity-70 uppercase tracking-widest mt-1"}, airline.code || airline.id.split('_')[0].toUpperCase())
+                        // Layout Fix: Chinese Name -> English Name (Sans-serif Bold), No Code
+                        React.createElement("div", {className: "text-xs font-bold font-sans opacity-80 uppercase tracking-widest mt-0.5"}, airline.enName)
                     )
                 ),
-                React.createElement("div", {className: "relative z-10 mt-auto mb-2 flex-1 flex flex-col justify-end"},
+                // Fix: Increased spacing for Accumulated Miles
+                React.createElement("div", {className: "relative z-10 mt-auto mb-1 pt-6 flex-1 flex flex-col justify-end"},
                     React.createElement("div", {className: "text-[10px] uppercase opacity-70 tracking-widest mb-0.5"}, "累積哩程"),
                     React.createElement("div", {className: "flex items-end justify-between"},
                         React.createElement("span", {className: "text-3xl font-black tracking-tight drop-shadow-md font-sans"}, formatNumber(currentBalance)),
@@ -337,7 +353,8 @@
                     ),
                     React.createElement("div", {className: "text-right max-w-[60%]"},
                         React.createElement("div", {className: "text-lg font-farrington font-bold tracking-widest opacity-95 mb-0.5 font-credit-card"}, airline.memberId || 'NO MEMBER ID'),
-                        React.createElement("div", {className: "text-xs opacity-90 truncate"}, `${airline.enName} · ${airline.program}`)
+                        // Layout Fix: MemberID -> Program Name
+                        React.createElement("div", {className: "text-xs opacity-90 truncate"}, airline.program)
                     )
                 )
             );
@@ -462,7 +479,11 @@
             const closeConfirmModal = () => { setIsConfirmModalClosing(true); setTimeout(() => { setConfirmModal({ ...confirmModal, isOpen: false }); setIsConfirmModalClosing(false); }, 300); };
 
             const handleAddAirline = (template) => {
-                const newAirline = { ...template, id: `${template.id}_${Date.now()}` }; 
+                const newAirline = { 
+                    ...template, 
+                    id: `${template.id}_${Date.now()}`,
+                    tier: template.tierOptions[0] // Fix: Default to lowest tier
+                }; 
                 setAirlines(prev => [...prev, newAirline]);
                 setIsAddAirlineOpen(false);
                 showToast(`已新增 ${template.name}`);
@@ -480,6 +501,12 @@
             };
 
             const handleLogoutClick = () => { setIsLoggingOut(true); setTimeout(() => onLogout(), 500); };
+
+            const openEditor = (type, item = null) => { 
+                setIsEditorClosing(false); 
+                // Fix: Default to Taiwan Date
+                setEditorState({ isOpen: true, type, data: item || { id: Date.now(), name: '', amount: '', date: getTaiwanDate() } }); 
+            };
 
             const saveEditor = (formData) => {
                 setAirlines(prev => prev.map(a => {
@@ -500,6 +527,12 @@
                     return { ...a, [listKey]: a[listKey].filter(item => item.id !== id) };
                 }));
                 closeConfirm(); showToast('項目已刪除', 'error');
+            };
+
+            const openConfirmModal = (item) => { 
+                setIsConfirmModalClosing(false); 
+                // Fix: Default to Taiwan Date
+                setConfirmModal({ isOpen: true, item: item, date: getTaiwanDate() }); 
             };
 
             const executeConfirm = () => {
@@ -619,17 +652,17 @@
                         React.createElement("div", {className: "animate-in slide-in-from-bottom-8 fade-in duration-700 delay-100"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
                                 React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(TrendingUp, {size: 16, className: "text-orange-500"}), " 待入帳"),
-                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: { id: Date.now(), name: '', amount: '' } }); }, className: "text-xs font-bold bg-white text-orange-600 px-3 py-1.5 rounded-full shadow-sm border border-orange-100 hover:bg-orange-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增項目")
+                                React.createElement("button", {onClick: () => openEditor('pending', { id: Date.now(), name: '', amount: '' }), className: "text-xs font-bold bg-white text-orange-600 px-3 py-1.5 rounded-full shadow-sm border border-orange-100 hover:bg-orange-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增項目")
                             ),
                             React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50 transition-all duration-500"},
                                 activeAirlineData.pending.length === 0 && React.createElement("div", {className: "p-8 text-center text-gray-300 text-sm"}, "暫無待入帳項目"),
                                 activeAirlineData.pending.map(item => React.createElement("div", {key: item.id, className: "p-4 flex items-center justify-between hover:bg-orange-50/30 transition-colors duration-300 group"},
                                     React.createElement("div", null, React.createElement("div", {className: "text-base font-bold text-slate-800"}, item.name), React.createElement("div", {className: `text-sm font-bold mt-0.5 ${item.amount < 0 ? 'text-slate-600' : 'text-orange-500'}`}, formatAmountDisplay(item.amount), React.createElement("span", {className: "text-[10px] text-gray-400 font-normal"}, " Miles"))),
                                     React.createElement("div", {className: "flex items-center gap-2"},
-                                        React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: item }); }, className: "p-2 text-gray-300 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50 active:scale-90"}, React.createElement(Edit3, {size: 18})),
+                                        React.createElement("button", {onClick: () => openEditor('pending', item), className: "p-2 text-gray-300 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50 active:scale-90"}, React.createElement(Edit3, {size: 18})),
                                         React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'pending') }), className: "p-2 text-gray-300 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 active:scale-90"}, React.createElement(Trash2, {size: 18})),
                                         React.createElement("div", {className: "w-px h-6 bg-gray-200 mx-1"}),
-                                        React.createElement("button", {onClick: () => { setIsConfirmModalClosing(false); setConfirmModal({ isOpen: true, item: item, date: formatDateForInput(new Date()) }); }, className: "flex items-center gap-1.5 bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-slate-700 active:scale-95 transition-all shadow-md"}, React.createElement(ArrowDownCircle, {size: 14}), " 入帳")
+                                        React.createElement("button", {onClick: () => openConfirmModal(item), className: "flex items-center gap-1.5 bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-slate-700 active:scale-95 transition-all shadow-md"}, React.createElement(ArrowDownCircle, {size: 14}), " 入帳")
                                     )
                                 ))
                             )
@@ -638,7 +671,7 @@
                         React.createElement("div", {className: "pb-10 animate-in slide-in-from-bottom-8 fade-in duration-700 delay-200"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
                                 React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(History, {size: 16, className: "text-blue-500"}), " 明細紀錄"),
-                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: { id: Date.now(), name: '', amount: '', date: formatDateForInput(new Date()) } }); }, className: "text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-full shadow-sm border border-blue-100 hover:bg-blue-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增紀錄")
+                                React.createElement("button", {onClick: () => openEditor('record', { id: Date.now(), name: '', amount: '', date: getTaiwanDate() }), className: "text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-full shadow-sm border border-blue-100 hover:bg-blue-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增紀錄")
                             ),
                             
                             // Sort Bar
@@ -673,7 +706,7 @@
                                                 expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), " 到期 ", expiryInfo.text)
                                             ),
                                             React.createElement("div", {className: "flex items-center gap-1 opacity-30 group-hover:opacity-100 transition-opacity duration-200"},
-                                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, className: "p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Edit3, {size: 16})),
+                                                React.createElement("button", {onClick: () => openEditor('record', item), className: "p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Edit3, {size: 16})),
                                                 React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'record') }), className: "p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Trash2, {size: 16}))
                                             )
                                         )
@@ -690,14 +723,11 @@
                             React.createElement("h3", {className: "text-slate-800 font-bold text-lg flex items-center gap-2"}, React.createElement(Settings, {size: 20, className: "text-slate-400"}), " 設定"),
                             React.createElement("button", {onClick: closeSettings, className: "bg-gray-100 rounded-full p-2 text-gray-500 hover:bg-gray-200 transition-colors"}, React.createElement(X, {size: 18}))
                         ),
-                        // Add padding inside the scroll container to prevent cut-off
                         React.createElement("div", {className: "space-y-6 max-h-[60vh] overflow-y-auto px-1 pb-1 no-scrollbar"},
-                            // Fixed: Input padding to prevent left cut-off
                             React.createElement("div", {className: "space-y-2"}, 
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"}, React.createElement(Hash, {size: 12}), " 會員卡號"), 
                                 React.createElement("input", {type: "text", value: activeAirlineData.memberId || '', onChange: (e) => updateAirline(activeAirlineData.id, 'memberId', e.target.value), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 font-mono text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none uppercase transition-shadow placeholder:font-sans", placeholder: "請輸入會員卡號"})
                             ),
-                            // Replaced button grid with CustomSelect
                             React.createElement("div", {className: "space-y-2"}, 
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"}, React.createElement(User, {size: 12}), " 會員等級"), 
                                 React.createElement(CustomSelect, {
@@ -707,7 +737,6 @@
                                 })
                             ),
                             
-                            // Fixed: Container for Expiry Rules is stable
                             React.createElement("div", {className: "space-y-3 pt-4 border-t border-gray-100"},
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mb-2"}, React.createElement(Clock, {size: 12}), " 里程效期規則"),
                                 React.createElement(ExpiryRuleOption, { type: 'none', title: '終身有效', subtitle: '里程永不過期', icon: React.createElement(ShieldCheck, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'none', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'none' }) }),
@@ -728,7 +757,6 @@
 
                 // Modals
                 React.createElement(AddAirlineModal, { isOpen: isAddAirlineOpen, onClose: () => setIsAddAirlineOpen(false), onSelect: handleAddAirline }),
-                // New Reorder Modal
                 React.createElement(ReorderModal, { isOpen: isReorderOpen, onClose: () => setIsReorderOpen(false), items: airlines, onMove: moveCard }),
 
                 editorState.isOpen && React.createElement("div", {className: `fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isEditorClosing ? 'opacity-0' : 'animate-in fade-in opacity-100'}`},
