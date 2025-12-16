@@ -3,7 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>哩程管家 | MileTracker Elite</title>
+    <title>哩程管家</title>
+    
+    <link rel="apple-touch-icon" href="files/Oneworld_logo.png">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -16,7 +20,7 @@
                         mono: ['"SFMono-Regular"', 'Consolas', '"Liberation Mono"', 'Menlo', 'monospace'],
                     },
                     animation: {
-                        'fade-in': 'fadeIn 0.5s ease-out',
+                        'fade-in': 'fadeIn 0.4s ease-out forwards', // Adjusted for smoother fade
                         'slide-up': 'slideUp 0.5s ease-out',
                         'zoom-in': 'zoomIn 0.3s ease-out',
                     },
@@ -33,6 +37,8 @@
         body { -webkit-tap-highlight-color: transparent; }
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        /* Add smooth scrolling */
+        html { scroll-behavior: smooth; }
     </style>
 </head>
 <body class="bg-[#f8f9fa] text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900">
@@ -44,7 +50,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, doc, setDoc, onSnapshot } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { Plus, Trash2, Wallet, TrendingUp, Plane, Award, User, X, Settings, Calendar, Clock, ArrowDownCircle, Edit3, Check, ChevronLeft, History, CreditCard, Hash, AlertTriangle, CheckCircle2, CalendarDays, LogOut, ShieldCheck, Cloud, CloudOff } from 'https://esm.sh/lucide-react@0.294.0';
+        import { Plus, Trash2, Wallet, TrendingUp, Plane, Award, User, X, Settings, Calendar, Clock, ArrowDownCircle, Edit3, Check, ChevronLeft, History, CreditCard, Hash, AlertTriangle, CheckCircle2, CalendarDays, LogOut, ShieldCheck, Cloud, CloudOff, PlusCircle } from 'https://esm.sh/lucide-react@0.294.0';
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -59,7 +65,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'miletracker-v28';
+        const appId = 'miletracker-v29'; // Incremented version
 
         // --- Assets Configuration ---
         const LogoFiles = {
@@ -71,11 +77,10 @@
             cx: 'files/CX_logo.svg'
         };
 
-        // 修改：優先嘗試 PNG，若無則回退 SVG (請確保有上傳 PNG 版的 Oneworld logo)
         const AllianceFiles = {
             star: 'files/StarAlliance_logo.jpeg',
             skyteam: 'files/skyteam_logo.png',
-            oneworld: 'files/Oneworld_logo.png' // Change to PNG for better compatibility if SVG fails
+            oneworld: 'files/Oneworld_logo.png' 
         };
 
         // Fallback SVGs
@@ -112,23 +117,34 @@
         const AllianceLogo = ({ id }) => {
             const [imgError, setImgError] = useState(false);
             if (!id) return null;
-            return React.createElement("div", {className: "w-20 h-6 opacity-90 mb-1 flex items-center justify-end"}, 
+            
+            // Fix: Remove brightness-0 invert for oneworld to show original color
+            let imgClass = "h-full w-auto object-contain opacity-90";
+            if (id === 'oneworld') {
+                // Keep original colors for oneworld
+            } else {
+                 // Other logos might need adjustment if they are dark, but usually white text is preferred on dark cards
+                 // The provided Star and Skyteam logos are likely usable.
+                 // If needed, we can add filters.
+            }
+
+            return React.createElement("div", {className: "w-20 h-6 mb-1 flex items-center justify-end"}, 
                 imgError ? 
                 AllianceSvgs[id] :
                 React.createElement("img", {
                     src: AllianceFiles[id], 
-                    // Fallback to SVG path if PNG fails
                     onError: (e) => {
-                         if (id === 'oneworld') e.target.src = 'files/Oneworld_logo.svg';
-                         else setImgError(true);
+                         // Fallback logic
+                         setImgError(true);
                     },
                     alt: id, 
-                    className: `h-full w-auto object-contain ${id === 'oneworld' ? 'brightness-0 invert opacity-90' : ''}`
+                    className: imgClass
                 })
             );
         };
 
-        const INITIAL_AIRLINES = [
+        // Template Data (Not initial state anymore)
+        const AIRLINE_TEMPLATES = [
             { id: 'ci', name: '中華航空', enName: 'China Airlines', alliance: 'skyteam', program: '華夏會員', tier: '金卡', memberId: '', tierOptions: ['華夏會員', '金卡', '翡翠卡', '晶鑽卡'], cardClass: 'bg-gradient-to-br from-[#4a1050] to-[#862562] text-white', logoColor: 'text-purple-900', expiryRule: { type: 'activity', value: 36, unit: 'month' }, records: [], pending: [] },
             { id: 'br', name: '長榮航空', enName: 'EVA Air', alliance: 'star', program: '無限萬哩遊', tier: '銀卡', memberId: '', tierOptions: ['綠卡', '銀卡', '金卡', '鑽石卡'], cardClass: 'bg-gradient-to-br from-[#005230] to-[#00824b] text-white', logoColor: 'text-green-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
             { id: 'jx', name: '星宇航空', enName: 'STARLUX Airlines', alliance: null, program: 'COSMILE', tier: 'Adventurer', memberId: '', tierOptions: ['Traveler', 'Adventurer', 'Explorer', 'Insighter'], cardClass: 'bg-gradient-to-br from-[#59493f] to-[#8c735d] text-white', logoColor: 'text-yellow-700', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
@@ -179,14 +195,14 @@
             const [opacity, setOpacity] = useState(1);
             useEffect(() => {
                 let start = null;
-                const duration = 2500; 
+                const duration = 2000; 
                 const animate = (timestamp) => {
                     if (!start) start = timestamp;
                     const progress = timestamp - start;
                     const percent = Math.min((progress / duration) * 100, 100);
                     setWidth(percent);
                     if (progress < duration) requestAnimationFrame(animate);
-                    else setTimeout(() => { setOpacity(0); setTimeout(onFinish, 800); }, 200);
+                    else setTimeout(() => { setOpacity(0); setTimeout(onFinish, 600); }, 200);
                 };
                 requestAnimationFrame(animate);
             }, [onFinish]);
@@ -215,7 +231,7 @@
             )
         );
 
-        const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel }) => {
+        const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "確認刪除", confirmColorClass = "bg-red-500 hover:bg-red-600 shadow-red-200" }) => {
             const [show, setShow] = useState(isOpen);
             const [isClosing, setIsClosing] = useState(false);
             useEffect(() => { if (isOpen) { setShow(true); setIsClosing(false); } else { setIsClosing(true); setTimeout(() => setShow(false), 300); } }, [isOpen]);
@@ -224,13 +240,13 @@
                 React.createElement("div", {className: "absolute inset-0 bg-black/40 backdrop-blur-sm", onClick: onCancel}),
                 React.createElement("div", {className: `bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl relative z-10 transition-all duration-300 transform ${isClosing ? 'scale-95 translate-y-4' : 'scale-100 translate-y-0'}`},
                     React.createElement("div", {className: "flex flex-col items-center text-center mb-6"},
-                        React.createElement("div", {className: "w-12 h-12 bg-red-50 rounded-full flex items-center justify-center mb-4 text-red-500"}, React.createElement(AlertTriangle, {size: 24})),
+                        React.createElement("div", {className: "w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-500"}, React.createElement(AlertTriangle, {size: 24})),
                         React.createElement("h3", {className: "text-lg font-bold text-slate-900 mb-2"}, title),
                         React.createElement("p", {className: "text-sm text-slate-500 leading-relaxed"}, message)
                     ),
                     React.createElement("div", {className: "grid grid-cols-2 gap-3"},
                         React.createElement("button", {onClick: onCancel, className: "py-3 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"}, "取消"),
-                        React.createElement("button", {onClick: onConfirm, className: "py-3 rounded-xl font-bold text-white bg-red-500 hover:bg-red-600 shadow-lg shadow-red-200 transition-colors"}, "確認刪除")
+                        React.createElement("button", {onClick: onConfirm, className: `py-3 rounded-xl font-bold text-white shadow-lg transition-colors ${confirmColorClass}`}, confirmText)
                     )
                 )
             );
@@ -240,12 +256,14 @@
             const currentBalance = airline.records.reduce((acc, r) => acc + (parseInt(r.amount)||0), 0);
             const pendingSum = airline.pending.reduce((acc, i) => acc + (parseInt(i.amount)||0), 0);
 
-            // 修復：詳細頁面使用 max-w-sm mx-auto，確保寬度不會過寬
+            // Updated Layout Logic for better mobile display
+            // Use aspect ratio instead of fixed height for better fluidity
+            // isDetail keeps it simple, card view uses aspect ratio
             const wrapperClass = isDetail 
-                ? "max-w-sm mx-auto shadow-none transition-all duration-500" 
-                : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group";
+                ? "max-w-sm mx-auto shadow-none transition-all duration-500 h-auto aspect-[1.58/1]" 
+                : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group h-auto aspect-[1.58/1]";
 
-            return React.createElement("div", {onClick: onClick, className: `${airline.cardClass} relative h-[220px] rounded-2xl p-6 overflow-hidden flex flex-col justify-between ${wrapperClass}`},
+            return React.createElement("div", {onClick: onClick, className: `${airline.cardClass} relative rounded-2xl p-5 sm:p-6 overflow-hidden flex flex-col justify-between ${wrapperClass}`},
                 React.createElement("div", {className: `absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white opacity-[0.1] rounded-full blur-xl transition-opacity duration-700 ${!isDetail ? 'group-hover:opacity-[0.15]' : ''}`}),
                 React.createElement("div", {className: "relative z-10 flex justify-between items-start"},
                     React.createElement(AirlineLogo, {id: airline.id, colorClass: airline.logoColor}),
@@ -254,7 +272,7 @@
                         React.createElement("div", {className: "text-[10px] font-mono opacity-60 uppercase tracking-widest mt-1"}, airline.code || airline.id.toUpperCase())
                     )
                 ),
-                React.createElement("div", {className: "relative z-10 mt-auto mb-4"},
+                React.createElement("div", {className: "relative z-10 mt-auto mb-4 flex-1 flex flex-col justify-end"},
                     React.createElement("div", {className: "text-[10px] uppercase opacity-70 tracking-widest mb-0.5"}, "目前里程"),
                     React.createElement("div", {className: "flex items-end justify-between"},
                         React.createElement("span", {className: "text-3xl font-black tracking-tight drop-shadow-md font-sans"}, formatNumber(currentBalance)),
@@ -275,6 +293,34 @@
                     React.createElement("div", {className: "text-right max-w-[60%]"},
                         React.createElement("div", {className: "text-[10px] font-mono font-bold tracking-wider opacity-90 mb-0.5"}, airline.memberId || 'NO MEMBER ID'),
                         React.createElement("div", {className: "text-[9px] opacity-60 truncate"}, `${airline.enName} · ${airline.program}`)
+                    )
+                )
+            );
+        };
+
+        const AddAirlineModal = ({ isOpen, onClose, onSelect }) => {
+            if (!isOpen) return null;
+            return React.createElement("div", {className: "fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-300"},
+                React.createElement("div", {className: "absolute inset-0", onClick: onClose}),
+                React.createElement("div", {className: "bg-white w-full max-w-md sm:rounded-3xl rounded-t-3xl p-6 shadow-2xl relative z-10 animate-in slide-in-from-bottom-10 duration-300 max-h-[80vh] overflow-y-auto"},
+                    React.createElement("div", {className: "flex justify-between items-center mb-6"},
+                        React.createElement("h3", {className: "text-xl font-bold text-slate-900"}, "新增會籍卡片"),
+                        React.createElement("button", {onClick: onClose, className: "p-2 bg-gray-100 rounded-full hover:bg-gray-200"}, React.createElement(X, {size: 20}))
+                    ),
+                    React.createElement("div", {className: "grid grid-cols-2 gap-4"},
+                        AIRLINE_TEMPLATES.map(template => (
+                            React.createElement("button", {
+                                key: template.id,
+                                onClick: () => onSelect(template),
+                                className: "flex flex-col items-center p-4 rounded-xl border border-gray-100 bg-gray-50 hover:bg-white hover:border-blue-200 hover:shadow-md transition-all active:scale-95 text-center group"
+                            },
+                                React.createElement("div", {className: "w-12 h-12 mb-3 bg-white rounded-full p-2 shadow-sm flex items-center justify-center group-hover:scale-110 transition-transform"}, 
+                                    React.createElement("img", {src: LogoFiles[template.id] || "", className: "w-full h-full object-contain"})
+                                ),
+                                React.createElement("span", {className: "text-sm font-bold text-slate-800"}, template.name),
+                                React.createElement("span", {className: "text-[10px] text-gray-500 mt-1"}, template.enName)
+                            )
+                        ))
                     )
                 )
             );
@@ -314,15 +360,16 @@
         };
 
         const MainApp = ({ user, onLogout }) => {
-            const [airlines, setAirlines] = useState(INITIAL_AIRLINES);
+            const [airlines, setAirlines] = useState([]); // Default empty
             const [selectedAirlineId, setSelectedAirlineId] = useState(null);
             
             // Modals
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+            const [isAddAirlineOpen, setIsAddAirlineOpen] = useState(false);
             const [editorState, setEditorState] = useState({ isOpen: false, type: null, data: null }); 
             const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, date: '' });
             const [toast, setToast] = useState({ message: '', type: '', isVisible: false });
-            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null });
+            const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, confirmText: '確認刪除', confirmColorClass: 'bg-red-500' });
             
             // Animation
             const [isDetailClosing, setIsDetailClosing] = useState(false);
@@ -335,7 +382,7 @@
                 const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'mileage_data', 'profile');
                 const unsubscribe = onSnapshot(docRef, (docSnap) => {
                     if (docSnap.exists()) setAirlines(docSnap.data().data);
-                    else setDoc(docRef, { data: INITIAL_AIRLINES });
+                    else setDoc(docRef, { data: [] }); // Initialize empty
                 });
                 return () => unsubscribe();
             }, [user]);
@@ -359,6 +406,31 @@
             const closeConfirmModal = () => { setIsConfirmModalClosing(true); setTimeout(() => { setConfirmModal({ ...confirmModal, isOpen: false }); setIsConfirmModalClosing(false); }, 300); };
 
             const openEditor = (type, item = null) => { setIsEditorClosing(false); setEditorState({ isOpen: true, type, data: item || { id: Date.now(), name: '', amount: '', date: formatDateForInput(new Date()) } }); };
+            
+            const handleAddAirline = (template) => {
+                const newAirline = { ...template, id: `${template.id}_${Date.now()}` }; // Unique ID
+                setAirlines(prev => [...prev, newAirline]);
+                setIsAddAirlineOpen(false);
+                showToast(`已新增 ${template.name}`);
+            };
+
+            const handleDeleteAirline = (id) => {
+                setConfirmDialog({
+                    isOpen: true,
+                    title: '刪除卡片',
+                    message: '您確定要刪除這張會籍卡片嗎？所有紀錄將無法復原。',
+                    confirmText: '刪除卡片',
+                    confirmColorClass: 'bg-red-500 hover:bg-red-600 shadow-red-200',
+                    onConfirm: () => {
+                        setAirlines(prev => prev.filter(a => a.id !== id));
+                        closeConfirm();
+                        closeSettings();
+                        closeDetail();
+                        showToast('卡片已刪除', 'success');
+                    }
+                });
+            };
+
             const saveEditor = (formData) => {
                 setAirlines(prev => prev.map(a => {
                     if (a.id !== selectedAirlineId) return a;
@@ -393,11 +465,11 @@
                 showToast('哩程已正式入帳');
             };
 
-            return React.createElement("div", {className: "min-h-screen bg-[#f8f9fa] text-slate-800 font-sans animate-in fade-in duration-700 relative"},
+            return React.createElement("div", {className: "min-h-screen bg-[#f8f9fa] text-slate-800 font-sans animate-in fade-in duration-700 relative pb-10"},
                 
-                // 首頁右上角登出按鈕
-                !selectedAirlineId && React.createElement("div", {className: "absolute top-4 right-4 z-10"},
-                    React.createElement("button", {onClick: onLogout, className: "p-2 rounded-full bg-white/50 backdrop-blur-sm hover:bg-white text-slate-500 shadow-sm transition-all"},
+                // Logout Button (Redesigned to match Settings button)
+                !selectedAirlineId && React.createElement("div", {className: "absolute top-4 right-4 z-20"},
+                    React.createElement("button", {onClick: onLogout, className: "w-10 h-10 bg-white/50 backdrop-blur-md rounded-full shadow-sm text-slate-500 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300"},
                         React.createElement(LogOut, {size: 18})
                     )
                 ),
@@ -405,15 +477,24 @@
                 !selectedAirlineId && React.createElement("div", {className: "max-w-5xl mx-auto px-6 py-8 space-y-8 pt-16 animate-in fade-in slide-in-from-bottom-4 duration-700"},
                     React.createElement("div", null,
                         React.createElement("div", {className: "flex items-center justify-between mb-6 px-1 mt-4"},
-                            React.createElement("h2", {className: "text-xl font-bold text-slate-900 flex items-center gap-2"}, React.createElement(CreditCard, {className: "w-6 h-6 text-slate-400"}), " 會籍卡片")
+                            React.createElement("h2", {className: "text-xl font-bold text-slate-900 flex items-center gap-2"}, React.createElement(CreditCard, {className: "w-6 h-6 text-slate-400"}), " 會籍卡片"),
+                            React.createElement("button", {onClick: () => setIsAddAirlineOpen(true), className: "bg-slate-900 text-white rounded-full p-2 hover:bg-slate-700 shadow-lg active:scale-95 transition-all"}, React.createElement(Plus, {size: 20}))
                         ),
+                        
+                        airlines.length === 0 ? 
+                        React.createElement("div", {className: "flex flex-col items-center justify-center py-20 text-center opacity-50"},
+                            React.createElement(CreditCard, {className: "w-16 h-16 text-gray-300 mb-4"}),
+                            React.createElement("p", {className: "text-lg font-bold text-gray-400"}, "尚未新增任何卡片"),
+                            React.createElement("button", {onClick: () => setIsAddAirlineOpen(true), className: "mt-4 text-blue-500 font-bold text-sm hover:underline"}, "立即新增")
+                        ) :
                         React.createElement("div", {className: "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pb-10"},
                             airlines.map(airline => React.createElement(AirlineCard, {key: airline.id, airline: airline, onClick: () => setSelectedAirlineId(airline.id)}))
                         )
                     )
                 ),
 
-                selectedAirlineId && activeAirlineData && React.createElement("div", {className: `fixed inset-0 z-50 bg-[#f8f9fa] flex flex-col transition-all duration-500 ${isDetailClosing ? 'opacity-0 translate-y-10' : 'opacity-100 translate-y-0 animate-in slide-in-from-bottom-10'}`},
+                // Detail View
+                selectedAirlineId && activeAirlineData && React.createElement("div", {className: `fixed inset-0 z-50 bg-[#f8f9fa] flex flex-col transition-all duration-500 ${isDetailClosing ? 'opacity-0' : 'opacity-100 animate-fade-in'}`},
                     React.createElement("div", {className: "absolute top-0 left-0 w-full z-20 px-5 py-6 flex justify-between items-center pointer-events-none"},
                         React.createElement("button", {onClick: closeDetail, className: "pointer-events-auto w-10 h-10 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-slate-600 flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110 active:scale-95"}, React.createElement(ChevronLeft, {size: 20})),
                         React.createElement("button", {onClick: () => { setIsSettingsClosing(false); setIsSettingsOpen(true); }, className: "pointer-events-auto w-10 h-10 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-slate-600 flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110 active:scale-95"}, React.createElement(Settings, {size: 20}))
@@ -488,9 +569,19 @@
                                 React.createElement("div", {className: `rounded-xl border p-3 transition-all duration-300 ${activeAirlineData.expiryRule.type === 'activity' ? 'border-blue-500 bg-blue-50 ring-1 ring-blue-500' : 'border-gray-200'}`}, React.createElement("button", {onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'activity' }), className: "flex items-center w-full mb-2 text-left"}, React.createElement("div", {className: `w-4 h-4 rounded-full border mr-3 flex items-center justify-center ${activeAirlineData.expiryRule.type === 'activity' ? 'border-blue-500' : 'border-gray-300'}`}, activeAirlineData.expiryRule.type === 'activity' && React.createElement("div", {className: "w-2 h-2 rounded-full bg-blue-500"})), React.createElement("div", {className: "text-sm font-bold text-slate-800"}, "滾動效期")), activeAirlineData.expiryRule.type === 'activity' && React.createElement("div", {className: "ml-7 flex items-center gap-2 animate-in fade-in duration-300"}, React.createElement("span", {className: "text-xs text-gray-600"}, "最後活動後"), React.createElement("input", {type: "number", value: activeAirlineData.expiryRule.value || 18, onChange: (e) => updateExpiryRule(activeAirlineData.id, { value: e.target.value }), className: "w-12 text-center text-sm border border-blue-200 rounded py-1 focus:ring-2 focus:ring-blue-300 outline-none transition-shadow"}), React.createElement("select", {value: activeAirlineData.expiryRule.unit || 'month', onChange: (e) => updateExpiryRule(activeAirlineData.id, { unit: e.target.value }), className: "text-sm border border-blue-200 rounded py-1 px-1 bg-white outline-none"}, React.createElement("option", {value: "month"}, "個月"), React.createElement("option", {value: "year"}, "年")), React.createElement("span", {className: "text-xs text-gray-600"}, "到期")))
                             )
                         ),
-                        React.createElement("button", {onClick: () => { showToast('設定已更新'); closeSettings(); }, className: "w-full mt-2 bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-slate-800 transition-colors active:scale-95"}, "完成設定")
+                        React.createElement("div", {className: "space-y-3 mt-4"},
+                            React.createElement("button", {onClick: () => { showToast('設定已更新'); closeSettings(); }, className: "w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-slate-800 transition-colors active:scale-95"}, "完成設定"),
+                            React.createElement("button", {onClick: () => handleDeleteAirline(activeAirlineData.id), className: "w-full bg-red-50 text-red-500 font-bold py-3.5 rounded-2xl hover:bg-red-100 transition-colors active:scale-95"}, "刪除此卡片")
+                        )
                     )
                 ),
+
+                // Add Airline Modal
+                React.createElement(AddAirlineModal, {
+                    isOpen: isAddAirlineOpen,
+                    onClose: () => setIsAddAirlineOpen(false),
+                    onSelect: handleAddAirline
+                }),
 
                 editorState.isOpen && React.createElement("div", {className: `fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isEditorClosing ? 'opacity-0' : 'animate-in fade-in opacity-100'}`},
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isEditorClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
@@ -522,7 +613,7 @@
                 ),
 
                 React.createElement(Toast, {message: toast.message, type: toast.type, isVisible: toast.isVisible}),
-                React.createElement(ConfirmDialog, {isOpen: confirmDialog.isOpen, title: confirmDialog.title, message: confirmDialog.message, onConfirm: confirmDialog.onConfirm, onCancel: closeConfirm})
+                React.createElement(ConfirmDialog, {isOpen: confirmDialog.isOpen, title: confirmDialog.title, message: confirmDialog.message, onConfirm: confirmDialog.onConfirm, onCancel: closeConfirm, confirmText: confirmDialog.confirmText, confirmColorClass: confirmDialog.confirmColorClass})
             );
         };
 
