@@ -11,6 +11,10 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="哩程管家">
     
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
         tailwind.config = {
@@ -19,7 +23,9 @@
                     fontFamily: {
                         sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
                         serif: ['"Times New Roman"', 'Times', 'serif'],
-                        mono: ['"Courier New"', 'Courier', 'monospace'], // Updated for Credit Card look
+                        mono: ['"Courier New"', 'Courier', 'monospace'],
+                        // Custom font for credit card numbers
+                        farrington: ['"Share Tech Mono"', 'monospace'],
                     },
                     animation: {
                         'fade-in': 'fadeIn 0.4s ease-out forwards',
@@ -45,9 +51,10 @@
             -webkit-appearance: none; 
             margin: 0; 
         }
-        /* Credit Card Embossed Effect */
+        /* Credit Card Embossed Effect - Enhanced */
         .font-credit-card {
-            text-shadow: 1px 1px 1px rgba(0,0,0,0.3);
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.6); /* Deeper shadow for embossing */
+            letter-spacing: 0.15em; /* Specific spacing for Farrington feel */
         }
     </style>
 </head>
@@ -75,7 +82,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'miletracker-v38';
+        const appId = 'miletracker-v39';
 
         // --- Assets ---
         const LogoFiles = { ci: 'files/CI_logo.svg', br: 'files/BR_logo.svg', jx: 'files/JX_logo.svg', nh: 'files/NH_logo.svg', jl: 'files/JL_logo.svg', cx: 'files/CX_logo.svg' };
@@ -313,7 +320,8 @@
                     React.createElement(AirlineLogo, {id: airline.id, colorClass: airline.logoColor}),
                     React.createElement("div", {className: "text-right"},
                         React.createElement("div", {className: "text-lg font-bold tracking-wide leading-tight text-white drop-shadow-sm"}, airline.name),
-                        React.createElement("div", {className: "text-[10px] font-mono opacity-60 uppercase tracking-widest mt-1"}, airline.code || airline.id.split('_')[0].toUpperCase())
+                        // Increased Size
+                        React.createElement("div", {className: "text-xs font-mono opacity-70 uppercase tracking-widest mt-1"}, airline.code || airline.id.split('_')[0].toUpperCase())
                     )
                 ),
                 React.createElement("div", {className: "relative z-10 mt-auto mb-4 flex-1 flex flex-col justify-end"},
@@ -330,10 +338,10 @@
                         )
                     ),
                     React.createElement("div", {className: "text-right max-w-[60%]"},
-                        // Increased font size and added credit card font style
-                        React.createElement("div", {className: "text-sm font-mono font-bold tracking-[0.15em] opacity-95 mb-0.5 font-credit-card"}, airline.memberId || 'NO MEMBER ID'),
-                        // Increased font size for EnName and Program
-                        React.createElement("div", {className: "text-[10px] opacity-80 truncate"}, `${airline.enName} · ${airline.program}`)
+                        // Update to Share Tech Mono, Larger Size
+                        React.createElement("div", {className: "text-lg font-farrington font-bold tracking-widest opacity-95 mb-0.5 font-credit-card"}, airline.memberId || 'NO MEMBER ID'),
+                        // Larger text for EnName & Program
+                        React.createElement("div", {className: "text-xs opacity-90 truncate"}, `${airline.enName} · ${airline.program}`)
                     )
                 )
             );
@@ -396,7 +404,7 @@
             
             const [isSettingsOpen, setIsSettingsOpen] = useState(false);
             const [isAddAirlineOpen, setIsAddAirlineOpen] = useState(false);
-            const [isReorderOpen, setIsReorderOpen] = useState(false); // New state for Reorder Modal
+            const [isReorderOpen, setIsReorderOpen] = useState(false); 
             
             const [editorState, setEditorState] = useState({ isOpen: false, type: null, data: null }); 
             const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, date: '' });
@@ -562,18 +570,14 @@
             return React.createElement("div", {className: `min-h-screen bg-[#f8f9fa] text-slate-800 font-sans relative pb-10 transition-opacity duration-500 ${isLoggingOut ? 'opacity-0' : 'opacity-100 animate-fade-in'}`},
                 
                 !selectedAirlineId && React.createElement("div", {className: "absolute top-4 right-4 z-20 flex gap-2"},
-                    // Reorder Button
                     React.createElement("button", {onClick: () => setIsReorderOpen(true), className: "w-10 h-10 bg-white/50 backdrop-blur-md rounded-full shadow-lg text-slate-500 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300"}, React.createElement(List, {size: 18})),
-                    // Logout Button
                     React.createElement("button", {onClick: handleLogoutClick, className: "w-10 h-10 bg-white/50 backdrop-blur-md rounded-full shadow-lg text-slate-500 flex items-center justify-center hover:bg-white hover:scale-110 active:scale-95 transition-all duration-300"}, React.createElement(LogOut, {size: 18}))
                 ),
 
                 !selectedAirlineId && React.createElement("div", {className: "max-w-5xl mx-auto px-6 py-8 space-y-8 pt-16 animate-in fade-in slide-in-from-bottom-4 duration-700"},
                     
-                    // Dashboard
                     React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-200 p-6 flex flex-col md:flex-row md:items-center justify-between gap-6 relative overflow-hidden"},
                         React.createElement("div", {className: "absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-full -mr-16 -mt-16 pointer-events-none"}),
-                        // Left: Current Total
                         React.createElement("div", {className: "flex-1 relative z-10 flex items-center gap-4"},
                             React.createElement("div", {className: "w-12 h-12 rounded-full bg-blue-50 flex items-center justify-center text-blue-600"}, React.createElement(Wallet, {className: "w-6 h-6"})),
                             React.createElement("div", null,
@@ -584,9 +588,7 @@
                                 )
                             )
                         ),
-                        // Divider
                         React.createElement("div", {className: "hidden md:block w-px h-12 bg-gray-100"}),
-                        // Right: Pending Total
                         React.createElement("div", {className: "flex-1 relative z-10 flex items-center gap-4"},
                             React.createElement("div", {className: "w-12 h-12 rounded-full bg-orange-50 flex items-center justify-center text-orange-500"}, React.createElement(History, {className: "w-6 h-6"})),
                             React.createElement("div", null,
@@ -693,10 +695,10 @@
                             React.createElement("button", {onClick: closeSettings, className: "bg-gray-100 rounded-full p-2 text-gray-500 hover:bg-gray-200 transition-colors"}, React.createElement(X, {size: 18}))
                         ),
                         React.createElement("div", {className: "space-y-6 max-h-[60vh] overflow-y-auto pr-1 no-scrollbar"},
-                            // Fixed input cropping by adding pl-4 and w-full container
+                            // Fixed: Input padding to prevent left cut-off
                             React.createElement("div", {className: "space-y-2"}, 
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"}, React.createElement(Hash, {size: 12}), " 會員卡號"), 
-                                React.createElement("input", {type: "text", value: activeAirlineData.memberId || '', onChange: (e) => updateAirline(activeAirlineData.id, 'memberId', e.target.value), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 font-mono text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none uppercase transition-shadow", placeholder: "請輸入會員卡號"})
+                                React.createElement("input", {type: "text", value: activeAirlineData.memberId || '', onChange: (e) => updateAirline(activeAirlineData.id, 'memberId', e.target.value), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 font-mono text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none uppercase transition-shadow placeholder:font-sans", placeholder: "請輸入會員卡號"})
                             ),
                             // Replaced button grid with CustomSelect
                             React.createElement("div", {className: "space-y-2"}, 
@@ -708,7 +710,7 @@
                                 })
                             ),
                             
-                            // Fixed: Container for Expiry Rules is stable
+                            // Expiry Rules
                             React.createElement("div", {className: "space-y-3 pt-4 border-t border-gray-100"},
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mb-2"}, React.createElement(Clock, {size: 12}), " 里程效期規則"),
                                 React.createElement(ExpiryRuleOption, { type: 'none', title: '終身有效', subtitle: '里程永不過期', icon: React.createElement(ShieldCheck, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'none', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'none' }) }),
@@ -720,7 +722,6 @@
                                 )
                             )
                         ),
-                        // Removed Card Reorder from here, moved to Dashboard
                         React.createElement("div", {className: "space-y-3 mt-4 border-t border-gray-100 pt-4"},
                             React.createElement("button", {onClick: () => { showToast('設定已更新'); closeSettings(); }, className: "w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-slate-800 transition-colors active:scale-95"}, "完成設定"),
                             React.createElement("button", {onClick: () => handleDeleteAirline(activeAirlineData.id), className: "w-full bg-red-50 text-red-500 font-bold py-3.5 rounded-2xl hover:bg-red-100 transition-colors active:scale-95"}, "刪除此卡片")
