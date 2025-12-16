@@ -59,7 +59,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'miletracker-v26';
+        const appId = 'miletracker-v26'; // Keeping version ID
 
         // --- Assets Configuration ---
         const LogoFiles = {
@@ -77,7 +77,7 @@
             oneworld: 'files/Oneworld_logo.svg'
         };
 
-        // Fallback SVGs
+        // Fallback SVGs (For missing images)
         const SvgLogos = {
             ci: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("path", {d:"M50 20 C60 20 70 30 70 45 C70 60 60 70 50 85 C40 70 30 60 30 45 C30 30 40 20 50 20 Z", fillOpacity:"0.9"}), React.createElement("path", {d:"M50 25 C55 25 60 30 60 40 C60 50 55 55 50 65 C45 55 40 50 40 40 C40 30 45 25 50 25 Z", fill:"white"})),
             br: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("path", {d:"M10 50 Q50 10 90 50 Q50 90 10 50 Z", fillOpacity:"0.3"}), React.createElement("path", {d:"M20 60 L80 30 L80 45 L20 75 Z"})),
@@ -235,7 +235,12 @@
             const currentBalance = airline.records.reduce((acc, r) => acc + (parseInt(r.amount)||0), 0);
             const pendingSum = airline.pending.reduce((acc, i) => acc + (parseInt(i.amount)||0), 0);
 
-            return React.createElement("div", {onClick: onClick, className: `${airline.cardClass} relative h-[220px] rounded-2xl p-6 overflow-hidden flex flex-col justify-between ${!isDetail ? 'cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group' : 'shadow-none transition-all duration-500'}`},
+            // 修正點開卡片寬度：如果 isDetail 為 true，則限制最大寬度 (max-w-sm mx-auto)
+            const wrapperClass = isDetail 
+                ? "max-w-sm mx-auto shadow-none transition-all duration-500" 
+                : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group";
+
+            return React.createElement("div", {onClick: onClick, className: `${airline.cardClass} relative h-[220px] rounded-2xl p-6 overflow-hidden flex flex-col justify-between ${wrapperClass}`},
                 React.createElement("div", {className: `absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white opacity-[0.1] rounded-full blur-xl transition-opacity duration-700 ${!isDetail ? 'group-hover:opacity-[0.15]' : ''}`}),
                 React.createElement("div", {className: "relative z-10 flex justify-between items-start"},
                     React.createElement(AirlineLogo, {id: airline.id, colorClass: airline.logoColor}),
@@ -272,6 +277,7 @@
 
         const LoginScreen = ({ onLogin }) => {
             const [loading, setLoading] = useState(false);
+
             const handleGoogleLogin = async () => {
                 if (!auth) {
                     alert("Firebase 設定未完成");
@@ -279,9 +285,15 @@
                 }
                 setLoading(true);
                 const provider = new GoogleAuthProvider();
-                try { await signInWithPopup(auth, provider); } 
-                catch (error) { console.error("Google Login Error:", error); alert("登入失敗，請確認 Firebase 設定。"); setLoading(false); }
+                try {
+                    await signInWithPopup(auth, provider);
+                } catch (error) {
+                    console.error("Google Login Error:", error);
+                    alert("登入失敗，請確認 Firebase 設定。");
+                    setLoading(false);
+                }
             };
+
             return React.createElement("div", {className: "fixed inset-0 bg-[#f8f9fa] flex items-center justify-center p-6 animate-in fade-in zoom-in duration-500"},
                 React.createElement("div", {className: "w-full max-w-sm bg-white rounded-3xl p-8 shadow-2xl text-center border border-gray-100"},
                     React.createElement("div", {className: "flex justify-center mb-6"},
@@ -298,7 +310,9 @@
                         ),
                         "使用 Google 帳號登入"
                     ),
-                    React.createElement("div", {className: "mt-8 flex items-center justify-center gap-2 text-xs text-gray-400"}, React.createElement(ShieldCheck, {size: 14}), React.createElement("span", null, "資料安全加密儲存"))
+                    React.createElement("div", {className: "mt-8 flex items-center justify-center gap-2 text-xs text-gray-400"},
+                        React.createElement(ShieldCheck, {size: 14}), React.createElement("span", null, "資料安全加密儲存")
+                    )
                 )
             );
         };
@@ -337,6 +351,7 @@
             }, [airlines, user]);
 
             const activeAirlineData = useMemo(() => airlines.find(a => a.id === selectedAirlineId), [airlines, selectedAirlineId]);
+
             const showToast = (msg, type = 'success') => { setToast({ message: msg, type, isVisible: true }); setTimeout(() => setToast(prev => ({ ...prev, isVisible: false })), 3000); };
             const closeConfirm = () => setConfirmDialog({ ...confirmDialog, isOpen: false });
             
@@ -349,6 +364,7 @@
             const closeConfirmModal = () => { setIsConfirmModalClosing(true); setTimeout(() => { setConfirmModal({ ...confirmModal, isOpen: false }); setIsConfirmModalClosing(false); }, 300); };
 
             const openEditor = (type, item = null) => { setIsEditorClosing(false); setEditorState({ isOpen: true, type, data: item || { id: Date.now(), name: '', amount: '', date: formatDateForInput(new Date()) } }); };
+            
             const saveEditor = (formData) => {
                 setAirlines(prev => prev.map(a => {
                     if (a.id !== selectedAirlineId) return a;
@@ -361,6 +377,7 @@
                 closeEditor();
                 showToast('儲存成功');
             };
+
             const requestDelete = (id, type) => { setConfirmDialog({ isOpen: true, title: '確認刪除', message: '您確定要永久刪除這筆項目嗎？', onConfirm: () => executeDelete(id, type) }); };
             const executeDelete = (id, type) => {
                 setAirlines(prev => prev.map(a => {
@@ -371,6 +388,7 @@
                 closeConfirm();
                 showToast('項目已刪除', 'error');
             };
+
             const openConfirmModal = (item) => { setIsConfirmModalClosing(false); setConfirmModal({ isOpen: true, item: item, date: formatDateForInput(new Date()) }); };
             const executeConfirm = () => {
                 if (!confirmModal.item) return;
