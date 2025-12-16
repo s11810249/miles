@@ -24,7 +24,6 @@
                         sans: ['-apple-system', 'BlinkMacSystemFont', '"Segoe UI"', 'Roboto', '"Helvetica Neue"', 'Arial', 'sans-serif'],
                         serif: ['"Times New Roman"', 'Times', 'serif'],
                         mono: ['"Courier New"', 'Courier', 'monospace'],
-                        // Custom font for credit card numbers
                         farrington: ['"Share Tech Mono"', 'monospace'],
                     },
                     animation: {
@@ -51,10 +50,10 @@
             -webkit-appearance: none; 
             margin: 0; 
         }
-        /* Credit Card Embossed Effect - Enhanced */
+        /* Credit Card Embossed Effect */
         .font-credit-card {
-            text-shadow: 1px 1px 2px rgba(0,0,0,0.6); /* Deeper shadow for embossing */
-            letter-spacing: 0.15em; /* Specific spacing for Farrington feel */
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
+            letter-spacing: 0.15em;
         }
     </style>
 </head>
@@ -82,7 +81,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'miletracker-v39';
+        const appId = 'miletracker-v40'; // Version bump
 
         // --- Assets ---
         const LogoFiles = { ci: 'files/CI_logo.svg', br: 'files/BR_logo.svg', jx: 'files/JX_logo.svg', nh: 'files/NH_logo.svg', jl: 'files/JL_logo.svg', cx: 'files/CX_logo.svg' };
@@ -694,7 +693,7 @@
                             React.createElement("h3", {className: "text-slate-800 font-bold text-lg flex items-center gap-2"}, React.createElement(Settings, {size: 20, className: "text-slate-400"}), " 設定"),
                             React.createElement("button", {onClick: closeSettings, className: "bg-gray-100 rounded-full p-2 text-gray-500 hover:bg-gray-200 transition-colors"}, React.createElement(X, {size: 18}))
                         ),
-                        React.createElement("div", {className: "space-y-6 max-h-[60vh] overflow-y-auto pr-1 no-scrollbar"},
+                        React.createElement("div", {className: "space-y-6 max-h-[60vh] overflow-y-auto px-1 pb-1 no-scrollbar"},
                             // Fixed: Input padding to prevent left cut-off
                             React.createElement("div", {className: "space-y-2"}, 
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"}, React.createElement(Hash, {size: 12}), " 會員卡號"), 
@@ -710,7 +709,7 @@
                                 })
                             ),
                             
-                            // Expiry Rules
+                            // Fixed: Container for Expiry Rules is stable
                             React.createElement("div", {className: "space-y-3 pt-4 border-t border-gray-100"},
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mb-2"}, React.createElement(Clock, {size: 12}), " 里程效期規則"),
                                 React.createElement(ExpiryRuleOption, { type: 'none', title: '終身有效', subtitle: '里程永不過期', icon: React.createElement(ShieldCheck, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'none', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'none' }) }),
