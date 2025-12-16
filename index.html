@@ -80,7 +80,7 @@
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = 'miletracker-release-v1'; // KEEP ORIGINAL DATA
+        const appId = 'miletracker-release-v1'; 
 
         // --- Assets ---
         const LogoFiles = { ci: 'files/CI_logo.svg', br: 'files/BR_logo.svg', jx: 'files/JX_logo.svg', nh: 'files/NH_logo.svg', jl: 'files/JL_logo.svg', cx: 'files/CX_logo.svg', as: 'files/AS_logo.svg' };
@@ -88,12 +88,6 @@
         
         const SvgLogos = {
             ci: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("path", {d:"M50 20 C60 20 70 30 70 45 C70 60 60 70 50 85 C40 70 30 60 30 45 C30 30 40 20 50 20 Z", fillOpacity:"0.9"}), React.createElement("path", {d:"M50 25 C55 25 60 30 60 40 C60 50 55 55 50 65 C45 55 40 50 40 40 C40 30 45 25 50 25 Z", fill:"white"})),
-            br: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("path", {d:"M10 50 Q50 10 90 50 Q50 90 10 50 Z", fillOpacity:"0.3"}), React.createElement("path", {d:"M20 60 L80 30 L80 45 L20 75 Z"})),
-            jx: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("path", {d:"M50 10 L60 40 L90 50 L60 60 L50 90 L40 60 L10 50 L40 40 Z"})),
-            nh: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("text", {x:"50", y:"60", textAnchor:"middle", fontSize:"30", fontWeight:"bold", style:{fontFamily:'sans-serif'}}, "ANA")),
-            jl: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("circle", {cx:"50", cy:"50", r:"35", fill:"currentColor"}), React.createElement("path", {d:"M30 50 L70 50 M50 30 L50 70", stroke:"white", strokeWidth:"8", strokeLinecap:"round", opacity:"0.9"})),
-            cx: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("path", {d:"M20 60 L80 40 L70 30 L30 50 Z"}), React.createElement("path", {d:"M25 65 L75 45", stroke:"currentColor", strokeWidth:"3"})),
-            as: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("text", {x:"50", y:"65", textAnchor:"middle", fontSize:"40", fontWeight:"bold", style:{fontFamily:'sans-serif'}}, "AS")),
             default: React.createElement("svg", {viewBox:"0 0 100 100", className:"w-full h-full fill-current"}, React.createElement("circle", {cx:"50", cy:"50", r:"40", fillOpacity:"0.2"}))
         };
 
@@ -332,6 +326,7 @@
         const AirlineCard = ({ airline, onClick, isDetail = false }) => {
             const currentBalance = airline.records.reduce((acc, r) => acc + (parseInt(r.amount)||0), 0);
             
+            // Fix: Use h-auto and min-h to allow growth, remove fixed aspect ratio on mobile
             const wrapperClass = isDetail 
                 ? "w-full mx-auto shadow-none transition-all duration-500 h-auto min-h-[200px]" 
                 : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group h-auto min-h-[200px] md:aspect-[1.586/1]";
@@ -339,6 +334,7 @@
             return React.createElement("div", {onClick: onClick, className: `${airline.cardClass} relative rounded-2xl p-6 pb-6 overflow-hidden flex flex-col justify-between ${wrapperClass}`},
                 React.createElement("div", {className: `absolute top-0 right-0 -mr-8 -mt-8 w-40 h-40 bg-white opacity-[0.1] rounded-full blur-xl transition-opacity duration-700 ${!isDetail ? 'group-hover:opacity-[0.15]' : ''}`}),
                 
+                // Top: Logo and Names
                 React.createElement("div", {className: "relative z-10 flex justify-between items-start"},
                     React.createElement(AirlineLogo, {id: airline.id, colorClass: airline.logoColor}),
                     React.createElement("div", {className: "text-right"},
@@ -347,6 +343,7 @@
                     )
                 ),
                 
+                // Middle: Accumulated Miles (Moved up with mt-4)
                 React.createElement("div", {className: "relative z-10 mt-4 mb-0 pt-0 flex-1 flex flex-col justify-center"},
                     React.createElement("div", {className: "text-[10px] uppercase opacity-70 tracking-widest mb-0 leading-none"}, "累積哩程"),
                     React.createElement("div", {className: "flex items-end justify-between"},
@@ -355,6 +352,7 @@
                     )
                 ),
                 
+                // Bottom: Tier and Program with Separator Line
                 React.createElement("div", {className: "relative z-10 pt-3 border-t border-white/15 flex justify-between items-end mt-2"}, 
                     React.createElement("div", {className: "flex flex-col gap-1"},
                         React.createElement("div", {className: "inline-flex items-center gap-1.5 px-0 py-1 rounded-md text-sm font-bold tracking-wide text-white/90"},
@@ -365,6 +363,105 @@
                         React.createElement("div", {className: "text-lg font-farrington font-bold tracking-widest opacity-95 mb-0.5 font-credit-card"}, airline.memberId || 'NO MEMBER ID'),
                         React.createElement("div", {className: "text-xs opacity-90 truncate"}, airline.program)
                     )
+                )
+            );
+        };
+        
+        const SplashScreen = ({ onFinish }) => {
+            const [width, setWidth] = useState(0);
+            const [opacity, setOpacity] = useState(1);
+            useEffect(() => {
+                let start = null;
+                const duration = 2000; 
+                const animate = (timestamp) => {
+                    if (!start) start = timestamp;
+                    const progress = timestamp - start;
+                    const percent = Math.min((progress / duration) * 100, 100);
+                    setWidth(percent);
+                    if (progress < duration) requestAnimationFrame(animate);
+                    else setTimeout(() => { setOpacity(0); setTimeout(onFinish, 600); }, 200);
+                };
+                requestAnimationFrame(animate);
+            }, [onFinish]);
+            return React.createElement("div", {className: "fixed inset-0 z-[100] bg-black flex flex-col items-center justify-center transition-opacity duration-800 ease-out", style: { opacity, pointerEvents: opacity === 0 ? 'none' : 'auto' }},
+                React.createElement("div", {className: "flex flex-col items-center animate-in fade-in zoom-in duration-1000"},
+                    React.createElement("div", {className: "relative mb-8"},
+                        React.createElement("div", {className: "absolute inset-0 bg-white blur-3xl opacity-20 animate-pulse"}),
+                        React.createElement("div", {className: "p-6 border border-white/10 rounded-full bg-white/5 backdrop-blur-md shadow-[0_0_20px_rgba(255,255,255,0.15)]"},
+                            React.createElement(Plane, {className: "w-16 h-16 text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.5)]"})
+                        )
+                    ),
+                    React.createElement("h1", {className: "text-4xl font-bold text-white tracking-[0.2em] mb-4 font-serif text-shadow"}, "哩程管家"),
+                    React.createElement("p", {className: "text-xs text-gray-500 font-light tracking-[0.5em] uppercase border-t border-white/10 pt-4 mt-2"}, "寰宇萬哩 · 尊榮隨行")
+                ),
+                React.createElement("div", {className: "absolute bottom-24 w-64 h-1 bg-gray-900 rounded-full overflow-hidden"},
+                    React.createElement("div", {className: "h-full bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.9)]", style: { width: `${width}%` }})
+                )
+            );
+        };
+
+        const Toast = ({ message, type, isVisible }) => (
+            React.createElement("div", {className: `fixed top-6 left-1/2 -translate-x-1/2 z-[120] flex items-center gap-2 px-4 py-3 rounded-full shadow-2xl transition-all duration-500 cubic-bezier(0.175, 0.885, 0.32, 1.275) ${isVisible ? 'translate-y-0 opacity-100' : '-translate-y-20 opacity-0 pointer-events-none'} ${type === 'success' ? 'bg-slate-900 text-white' : 'bg-red-500 text-white'}`},
+                type === 'success' ? React.createElement(CheckCircle2, {size: 18, className: "text-green-400"}) : React.createElement(AlertTriangle, {size: 18, className: "text-white"}),
+                React.createElement("span", {className: "text-sm font-bold tracking-wide"}, message)
+            )
+        );
+
+        const ConfirmDialog = ({ isOpen, title, message, onConfirm, onCancel, confirmText = "確認刪除", confirmColorClass = "bg-red-500 hover:bg-red-600 shadow-red-200" }) => {
+            const [show, setShow] = useState(isOpen);
+            const [isClosing, setIsClosing] = useState(false);
+            useEffect(() => { if (isOpen) { setShow(true); setIsClosing(false); } else { setIsClosing(true); setTimeout(() => setShow(false), 300); } }, [isOpen]);
+            if (!show) return null;
+            return React.createElement("div", {className: `fixed inset-0 z-[110] flex items-center justify-center px-4 transition-opacity duration-300 ${isClosing ? 'opacity-0' : 'opacity-100'}`},
+                React.createElement("div", {className: "absolute inset-0 bg-black/40 backdrop-blur-sm", onClick: onCancel}),
+                React.createElement("div", {className: `bg-white w-full max-w-xs rounded-3xl p-6 shadow-2xl relative z-10 transition-all duration-300 transform ${isClosing ? 'scale-95 translate-y-4' : 'scale-100 translate-y-0'}`},
+                    React.createElement("div", {className: "flex flex-col items-center text-center mb-6"},
+                        React.createElement("div", {className: "w-12 h-12 bg-gray-50 rounded-full flex items-center justify-center mb-4 text-gray-500"}, React.createElement(AlertTriangle, {size: 24})),
+                        React.createElement("h3", {className: "text-lg font-bold text-slate-900 mb-2"}, title),
+                        React.createElement("p", {className: "text-sm text-slate-500 leading-relaxed"}, message)
+                    ),
+                    React.createElement("div", {className: "grid grid-cols-2 gap-3"},
+                        React.createElement("button", {onClick: onCancel, className: "py-3 rounded-xl font-bold text-slate-500 bg-slate-100 hover:bg-slate-200 transition-colors"}, "取消"),
+                        React.createElement("button", {onClick: onConfirm, className: `py-3 rounded-xl font-bold text-white shadow-lg transition-colors ${confirmColorClass}`}, confirmText)
+                    )
+                )
+            );
+        };
+
+        const ReorderModal = ({ isOpen, onClose, items, onMove }) => {
+            if (!isOpen) return null;
+            return React.createElement("div", {className: "fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-center justify-center animate-in fade-in duration-300 p-4"},
+                React.createElement("div", {className: "absolute inset-0", onClick: onClose}),
+                React.createElement("div", {className: "bg-white w-full max-w-sm rounded-3xl p-6 shadow-2xl relative z-10 animate-in zoom-in-95 duration-300 max-h-[80vh] flex flex-col"},
+                    React.createElement("div", {className: "flex justify-between items-center mb-4"},
+                        React.createElement("h3", {className: "text-xl font-bold text-slate-900"}, "排序卡片"),
+                        React.createElement("button", {onClick: onClose, className: "p-2 bg-gray-100 rounded-full hover:bg-gray-200"}, React.createElement(X, {size: 20}))
+                    ),
+                    React.createElement("div", {className: "flex-1 overflow-y-auto space-y-3 pr-2"},
+                        items.map((item, index) => (
+                            React.createElement("div", {key: item.id, className: "flex items-center justify-between p-3 bg-slate-50 rounded-xl border border-gray-100"},
+                                React.createElement("div", {className: "flex items-center gap-3"},
+                                    React.createElement("div", {className: "w-8 h-8 rounded-full bg-white shadow-sm flex items-center justify-center p-1.5"}, 
+                                        React.createElement("img", {src: LogoFiles[item.id.split('_')[0]] || "", className: "w-full h-full object-contain"})
+                                    ),
+                                    React.createElement("span", {className: "font-bold text-slate-700 text-sm"}, item.name)
+                                ),
+                                React.createElement("div", {className: "flex gap-1"},
+                                    React.createElement("button", {
+                                        onClick: () => onMove(index, -1),
+                                        disabled: index === 0,
+                                        className: `p-2 rounded-lg ${index === 0 ? 'text-slate-200' : 'text-slate-500 hover:bg-white hover:shadow-sm'}`
+                                    }, React.createElement(ArrowUp, {size: 16})),
+                                    React.createElement("button", {
+                                        onClick: () => onMove(index, 1),
+                                        disabled: index === items.length - 1,
+                                        className: `p-2 rounded-lg ${index === items.length - 1 ? 'text-slate-200' : 'text-slate-500 hover:bg-white hover:shadow-sm'}`
+                                    }, React.createElement(ArrowDown, {size: 16}))
+                                )
+                            )
+                        ))
+                    ),
+                    React.createElement("button", {onClick: onClose, className: "mt-4 w-full bg-slate-900 text-white font-bold py-3 rounded-xl shadow-lg hover:bg-slate-800 transition-colors"}, "完成")
                 )
             );
         };
@@ -652,7 +749,7 @@
                     ),
                     React.createElement("div", {className: "flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-w-3xl mx-auto w-full pt-24 relative pb-32"},
                         React.createElement("div", {className: "rounded-2xl shadow-xl mt-2 animate-in zoom-in-95 duration-500 w-full md:max-w-md mx-auto"}, React.createElement(AirlineCard, {airline: activeAirlineData, onClick: () => {}, isDetail: true})),
-                        
+                        // ... (Rest of Detail View remains same)
                         React.createElement("div", {className: "animate-in slide-in-from-bottom-8 fade-in duration-700 delay-100"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
                                 React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(TrendingUp, {size: 16, className: "text-orange-500"}), " 待入帳"),
