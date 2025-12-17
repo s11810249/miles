@@ -117,15 +117,20 @@
         const formatDateForInput = (date) => date ? new Date(date).toISOString().split('T')[0] : '';
         const formatDateForDisplay = (dateStr) => dateStr ? dateStr.replace(/-/g, '/') : '-';
 
-        const calculateExpiryDate = (recordDateStr, rule, allRecords) => {
-            if (!recordDateStr) return null;
-            const [y, m, d] = recordDateStr.split('-').map(Number);
+        const calculateExpiryDate = (transactionDateStr, entryDateStr, rule, allRecords) => {
+            // Priority: entryDateStr (入檔日期) > transactionDateStr (入帳日期)
+            const dateStr = entryDateStr || transactionDateStr;
+            if (!dateStr) return null;
+            const [y, m, d] = dateStr.split('-').map(Number);
             let targetY = y;
             let targetM = m - 1; 
 
             if (rule.type === 'activity') {
                 const timestamps = allRecords.map(r => {
-                    const [ry, rm, rd] = r.date.split('-').map(Number);
+                    // For activity-based expiry, use the latest entry/transaction date from all records for calculation
+                    const calcDateStr = r.entryDate || r.date;
+                    if (!calcDateStr) return NaN;
+                    const [ry, rm, rd] = calcDateStr.split('-').map(Number);
                     return new Date(ry, rm - 1, rd).getTime();
                 }).filter(t => !isNaN(t));
                 if (timestamps.length > 0) {
@@ -142,10 +147,10 @@
             return new Date(targetY, targetM + 1, 0, 12, 0, 0);
         };
 
-        const calculateExpiryDisplay = (recordDateStr, rule, allRecords, amount) => {
+        const calculateExpiryDisplay = (transactionDateStr, entryDateStr, rule, allRecords, amount) => {
             if (parseInt(amount) <= 0) return { text: null, color: '' };
             if (rule.type === 'none') return { text: '終身有效', color: 'text-green-600 bg-green-50' };
-            const expiryDate = calculateExpiryDate(recordDateStr, rule, allRecords);
+            const expiryDate = calculateExpiryDate(transactionDateStr, entryDateStr, rule, allRecords);
             if (!expiryDate) return { text: '-', color: 'text-gray-400 bg-gray-50' };
             const today = new Date();
             const diffTime = expiryDate - today;
@@ -161,13 +166,34 @@
 
         // --- Default Templates (Fallback) ---
         const DEFAULT_TEMPLATES = [
-            { id: 'ci', code: 'CI', name: '中華航空', enName: 'China Airlines', alliance: 'skyteam', program: '華夏會員', tier: '金卡', memberId: '', tierOptions: ['華夏會員', '金卡', '翡翠卡', '晶鑽卡'], cardClass: 'bg-gradient-to-br from-[#4a1050] to-[#862562] text-white', logoColor: 'text-purple-900', expiryRule: { type: 'activity', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'br', code: 'BR', name: '長榮航空', enName: 'EVA Air', alliance: 'star', program: '無限萬哩遊', tier: '銀卡', memberId: '', tierOptions: ['綠卡', '銀卡', '金卡', '鑽石卡'], cardClass: 'bg-gradient-to-br from-[#005230] to-[#00824b] text-white', logoColor: 'text-green-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'jx', code: 'JX', name: '星宇航空', enName: 'STARLUX Airlines', alliance: null, program: 'COSMILE', tier: 'Adventurer', memberId: '', tierOptions: ['Traveler', 'Adventurer', 'Explorer', 'Insighter'], cardClass: 'bg-gradient-to-br from-[#59493f] to-[#8c735d] text-white', logoColor: 'text-yellow-700', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'nh', code: 'NH', name: 'ANA全日空', enName: 'All Nippon Airways', alliance: 'star', program: 'Mileage Club', tier: 'Platinum', memberId: '', tierOptions: ['一般會員', 'Bronze', 'Platinum', 'Diamond'], cardClass: 'bg-gradient-to-br from-[#003d7c] to-[#007cc2] text-white', logoColor: 'text-blue-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'jl', code: 'JL', name: '日本航空', enName: 'Japan Airlines', alliance: 'oneworld', program: 'JAL Mileage Bank', tier: 'Crystal', memberId: '', tierOptions: ['普通會員', 'Crystal', 'Sapphire', 'Diamond', 'JGC Premier'], cardClass: 'bg-gradient-to-br from-[#8a0000] to-[#d60000] text-white', logoColor: 'text-red-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, records: [], pending: [] },
-            { id: 'cx', code: 'CX', name: '國泰航空', enName: 'Cathay Pacific', alliance: 'oneworld', program: '亞洲萬里通', tier: 'Green', memberId: '', tierOptions: ['Green', 'Silver', 'Gold', 'Diamond'], cardClass: 'bg-gradient-to-br from-[#004e4e] to-[#007a7a] text-white', logoColor: 'text-teal-800', expiryRule: { type: 'activity', value: 18, unit: 'month' }, records: [], pending: [] },
-            { id: 'as', code: 'AS', name: '阿拉斯加航空', enName: 'Alaska Airlines', alliance: 'oneworld', program: 'Mileage Plan', tier: 'MVP', memberId: '', tierOptions: ['MVP', 'MVP Gold', 'MVP Gold 75K', 'MVP Gold 100K'], cardClass: 'bg-gradient-to-br from-[#00385d] to-[#001f3f] text-white', logoColor: 'text-white', expiryRule: { type: 'activity', value: 24, unit: 'month' }, records: [], pending: [] }
+            { id: 'ci', code: 'CI', name: '中華航空', enName: 'China Airlines', alliance: 'skyteam', program: '華夏會員', tier: '金卡', memberId: '', tierOptions: ['華夏會員', '金卡', '翡翠卡', '晶鑽卡'], cardClass: 'bg-gradient-to-br from-[#4a1050] to-[#862562] text-white', logoColor: 'text-purple-900', expiryRule: { type: 'activity', value: 36, unit: 'month' }, 
+            categoryOptions: ['信用卡轉換', '飛行', '活動', '雜項'], 
+            categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800', '活動': 'bg-purple-100 text-purple-800', '雜項': 'bg-gray-100 text-gray-800' },
+            records: [], pending: [] },
+            { id: 'br', code: 'BR', name: '長榮航空', enName: 'EVA Air', alliance: 'star', program: '無限萬哩遊', tier: '銀卡', memberId: '', tierOptions: ['綠卡', '銀卡', '金卡', '鑽石卡'], cardClass: 'bg-gradient-to-br from-[#005230] to-[#00824b] text-white', logoColor: 'text-green-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, 
+            categoryOptions: ['信用卡轉換', '飛行', '活動', '雜項'], 
+            categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800', '活動': 'bg-purple-100 text-purple-800', '雜項': 'bg-gray-100 text-gray-800' },
+            records: [], pending: [] },
+            { id: 'jx', code: 'JX', name: '星宇航空', enName: 'STARLUX Airlines', alliance: null, program: 'COSMILE', tier: 'Adventurer', memberId: '', tierOptions: ['Traveler', 'Adventurer', 'Explorer', 'Insighter'], cardClass: 'bg-gradient-to-br from-[#59493f] to-[#8c735d] text-white', logoColor: 'text-yellow-700', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, 
+            categoryOptions: ['信用卡轉換', '飛行', '活動', '雜項'], 
+            categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800', '活動': 'bg-purple-100 text-purple-800', '雜項': 'bg-gray-100 text-gray-800' },
+            records: [], pending: [] },
+            { id: 'nh', code: 'NH', name: 'ANA全日空', enName: 'All Nippon Airways', alliance: 'star', program: 'Mileage Club', tier: 'Platinum', memberId: '', tierOptions: ['一般會員', 'Bronze', 'Platinum', 'Diamond'], cardClass: 'bg-gradient-to-br from-[#003d7c] to-[#007cc2] text-white', logoColor: 'text-blue-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, 
+            categoryOptions: ['信用卡轉換', '飛行', '活動', '雜項'], 
+            categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800', '活動': 'bg-purple-100 text-purple-800', '雜項': 'bg-gray-100 text-gray-800' },
+            records: [], pending: [] },
+            { id: 'jl', code: 'JL', name: '日本航空', enName: 'Japan Airlines', alliance: 'oneworld', program: 'JAL Mileage Bank', tier: 'Crystal', memberId: '', tierOptions: ['普通會員', 'Crystal', 'Sapphire', 'Diamond', 'JGC Premier'], cardClass: 'bg-gradient-to-br from-[#8a0000] to-[#d60000] text-white', logoColor: 'text-red-800', expiryRule: { type: 'fixed', value: 36, unit: 'month' }, 
+            categoryOptions: ['信用卡轉換', '飛行', '活動', '雜項'], 
+            categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800', '活動': 'bg-purple-100 text-purple-800', '雜項': 'bg-gray-100 text-gray-800' },
+            records: [], pending: [] },
+            { id: 'cx', code: 'CX', name: '國泰航空', enName: 'Cathay Pacific', alliance: 'oneworld', program: '亞洲萬里通', tier: 'Green', memberId: '', tierOptions: ['Green', 'Silver', 'Gold', 'Diamond'], cardClass: 'bg-gradient-to-br from-[#004e4e] to-[#007a7a] text-white', logoColor: 'text-teal-800', expiryRule: { type: 'activity', value: 18, unit: 'month' }, 
+            categoryOptions: ['信用卡轉換', '飛行', '活動', '雜項'], 
+            categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800', '活動': 'bg-purple-100 text-purple-800', '雜項': 'bg-gray-100 text-gray-800' },
+            records: [], pending: [] },
+            { id: 'as', code: 'AS', name: '阿拉斯加航空', enName: 'Alaska Airlines', alliance: 'oneworld', program: 'Mileage Plan', tier: 'MVP', memberId: '', tierOptions: ['MVP', 'MVP Gold', 'MVP Gold 75K', 'MVP Gold 100K'], cardClass: 'bg-gradient-to-br from-[#00385d] to-[#001f3f] text-white', logoColor: 'text-white', expiryRule: { type: 'activity', value: 24, unit: 'month' }, 
+            categoryOptions: ['信用卡轉換', '飛行', '活動', '雜項'], 
+            categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800', '活動': 'bg-purple-100 text-purple-800', '雜項': 'bg-gray-100 text-gray-800' },
+            records: [], pending: [] }
         ];
 
         // --- Custom Components ---
@@ -221,12 +247,29 @@
                 const tiers = val.split(',').map(t => t.trim());
                 handleChange('tierOptions', tiers);
             };
+            
+            const handleCategoryChange = (val) => {
+                const categories = val.split(',').map(t => t.trim()).filter(t => t);
+                handleChange('categoryOptions', categories);
+            };
+
+            const handleColorChange = (e) => {
+                const newColors = {};
+                e.target.value.split('\n').forEach(line => {
+                    const [key, value] = line.split('=');
+                    if (key && value) newColors[key.trim()] = value.trim();
+                });
+                handleChange('categoryColors', newColors);
+            };
 
             const handleAdd = () => {
                 const newId = prompt("請輸入新航空 ID (例如: ua)");
                 if(newId) {
                     setEditingTemplates([...editingTemplates, {
-                         id: newId, code: newId.toUpperCase(), name: '新航空', enName: 'New Airline', alliance: null, program: 'Program', tier: 'Member', tierOptions: ['Member'], cardClass: 'bg-slate-700 text-white', logoColor: 'text-white', expiryRule: {type: 'fixed', value: 36, unit: 'month'}, records: [], pending: []
+                         id: newId, code: newId.toUpperCase(), name: '新航空', enName: 'New Airline', alliance: null, program: 'Program', tier: 'Member', tierOptions: ['Member'], cardClass: 'bg-slate-700 text-white', logoColor: 'text-white', expiryRule: {type: 'fixed', value: 36, unit: 'month'}, 
+                         categoryOptions: ['信用卡轉換', '飛行'], 
+                         categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800' },
+                         records: [], pending: []
                     }]);
                     setSelectedIndex(editingTemplates.length);
                 }
@@ -276,6 +319,18 @@
                                 React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "聯盟 (star/skyteam/oneworld)"), React.createElement("input", {value: current.alliance || '', onChange:e=>handleChange('alliance', e.target.value), className:"w-full border rounded p-2 text-sm"})),
                                 React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "卡片樣式 (Tailwind CSS)"), React.createElement("input", {value: current.cardClass, onChange:e=>handleChange('cardClass', e.target.value), className:"w-full border rounded p-2 text-sm font-mono"})),
                                 React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "會員等級 (逗號分隔)"), React.createElement("textarea", {value: current.tierOptions.join(', '), onChange:e=>handleTierChange(e.target.value), className:"w-full border rounded p-2 text-sm h-20"})),
+                                React.createElement("div", {className: "pt-4 border-t border-slate-100"}, 
+                                    React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "類別 (逗號分隔)"), 
+                                    React.createElement("textarea", {value: (current.categoryOptions || []).join(', '), onChange: handleCategoryChange, className:"w-full border rounded p-2 text-sm h-20"})
+                                ),
+                                React.createElement("div", {className: "pt-4 border-t border-slate-100"},
+                                    React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "類別顏色 (Tailwind Class, 每行一組，例如：類別名=顏色)"),
+                                    React.createElement("textarea", {
+                                        value: Object.entries(current.categoryColors || {}).map(([key, value]) => `${key}=${value}`).join('\n'), 
+                                        onChange: handleColorChange, 
+                                        className:"w-full border rounded p-2 text-sm font-mono h-40"
+                                    })
+                                ),
                                 React.createElement("button", {onClick: handleDelete, className: "text-red-500 text-sm hover:underline"}, "刪除此模板")
                             )
                         ),
@@ -628,9 +683,20 @@
                 setAirlines(prev => prev.map(a => {
                     if (a.id !== selectedAirlineId) return a;
                     const listKey = editorState.type === 'record' ? 'records' : 'pending';
+                    
+                    // Set default category and entryDate if missing for new records
+                    let dataToSave = formData;
+                    if (listKey === 'records') {
+                         dataToSave = { 
+                            ...formData, 
+                            category: formData.category || a.categoryOptions[0] || '',
+                            entryDate: formData.entryDate || formData.date // Ensure entryDate defaults to date if empty
+                        };
+                    }
+
                     const list = a[listKey];
-                    const isNew = !list.find(i => i.id === formData.id);
-                    let newList = isNew ? [formData, ...list] : list.map(i => i.id === formData.id ? formData : i);
+                    const isNew = !list.find(i => i.id === dataToSave.id);
+                    let newList = isNew ? [dataToSave, ...list] : list.map(i => i.id === dataToSave.id ? dataToSave : i);
                     return { ...a, [listKey]: newList };
                 }));
                 closeEditor(); showToast('儲存成功');
@@ -647,7 +713,18 @@
 
             const executeConfirm = () => {
                 if (!confirmModal.item) return;
-                const confirmedItem = { id: Date.now(), name: confirmModal.item.name, amount: confirmModal.item.amount, date: confirmModal.date };
+                
+                // Create a new record with transactionDate as today, and use the selected date as entryDate
+                const confirmedItem = { 
+                    id: Date.now(), 
+                    name: confirmModal.item.name, 
+                    content: confirmModal.item.content || '',
+                    amount: confirmModal.item.amount, 
+                    date: getTaiwanDate(), // Transaction Date (入帳日, for display/general sorting)
+                    entryDate: confirmModal.date, // Entry Date (入檔日期, for expiry calculation)
+                    category: activeAirlineData.categoryOptions[0] || '' // Default category for new entry
+                };
+                
                 setAirlines(prev => prev.map(a => {
                     if (a.id !== selectedAirlineId) return a;
                     return { ...a, pending: a.pending.filter(p => p.id !== confirmModal.item.id), records: [confirmedItem, ...a.records] };
@@ -669,17 +746,21 @@
                 const records = [...activeAirlineData.records];
                 return records.sort((a, b) => {
                     let valA, valB;
+                    // Sort by the date used for calculation (entryDate or transactionDate)
+                    const dateAStr = a.entryDate || a.date;
+                    const dateBStr = b.entryDate || b.date;
+
                     if (sortConfig.key === 'amount') {
                         valA = parseInt(a.amount); valB = parseInt(b.amount);
                     } else if (sortConfig.key === 'expiry') {
-                        const dateA = calculateExpiryDate(a.date, activeAirlineData.expiryRule, activeAirlineData.records);
-                        const dateB = calculateExpiryDate(b.date, activeAirlineData.expiryRule, activeAirlineData.records);
+                        const dateA = calculateExpiryDate(a.date, a.entryDate, activeAirlineData.expiryRule, activeAirlineData.records);
+                        const dateB = calculateExpiryDate(b.date, b.entryDate, activeAirlineData.expiryRule, activeAirlineData.records);
                         valA = dateA ? dateA.getTime() : 0;
                         valB = dateB ? dateB.getTime() : 0;
                     } else if (sortConfig.key === 'name') {
                         valA = a.name.toLowerCase(); valB = b.name.toLowerCase();
-                    } else { 
-                        valA = new Date(a.date).getTime(); valB = new Date(b.date).getTime();
+                    } else { // default to 'date' (transaction date) or 'entryDate'
+                        valA = new Date(dateAStr).getTime(); valB = new Date(dateBStr).getTime();
                     }
                     if (valA < valB) return sortConfig.direction === 'asc' ? -1 : 1;
                     if (valA > valB) return sortConfig.direction === 'asc' ? 1 : -1;
@@ -753,12 +834,16 @@
                         React.createElement("div", {className: "animate-in slide-in-from-bottom-8 fade-in duration-700 delay-100"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
                                 React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(TrendingUp, {size: 16, className: "text-orange-500"}), " 待入帳"),
-                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: { id: Date.now(), name: '', amount: '' } }); }, className: "text-xs font-bold bg-white text-orange-600 px-3 py-1.5 rounded-full shadow-sm border border-orange-100 hover:bg-orange-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增項目")
+                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: { id: Date.now(), name: '', content: '', amount: '' } }); }, className: "text-xs font-bold bg-white text-orange-600 px-3 py-1.5 rounded-full shadow-sm border border-orange-100 hover:bg-orange-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增項目")
                             ),
                             React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50 transition-all duration-500"},
                                 activeAirlineData.pending.length === 0 && React.createElement("div", {className: "p-8 text-center text-gray-300 text-sm"}, "暫無待入帳項目"),
                                 activeAirlineData.pending.map(item => React.createElement("div", {key: item.id, className: "p-4 flex items-center justify-between hover:bg-orange-50/30 transition-colors duration-300 group"},
-                                    React.createElement("div", null, React.createElement("div", {className: "text-base font-bold text-slate-800"}, item.name), React.createElement("div", {className: `text-sm font-bold mt-0.5 ${item.amount < 0 ? 'text-slate-600' : 'text-orange-500'}`}, formatAmountDisplay(item.amount), React.createElement("span", {className: "text-[10px] text-gray-400 font-normal"}, " Miles"))),
+                                    React.createElement("div", null, 
+                                        React.createElement("div", {className: "text-base font-bold text-slate-800"}, item.name), 
+                                        item.content && React.createElement("div", {className: "text-xs text-slate-500 mt-0.5"}, item.content),
+                                        React.createElement("div", {className: `text-sm font-bold mt-0.5 ${item.amount < 0 ? 'text-slate-600' : 'text-orange-500'}`}, formatAmountDisplay(item.amount), React.createElement("span", {className: "text-[10px] text-gray-400 font-normal"}, " Miles"))
+                                    ),
                                     React.createElement("div", {className: "flex items-center gap-2"},
                                         React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: item }); }, className: "p-2 text-gray-300 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50 active:scale-90"}, React.createElement(Edit3, {size: 18})),
                                         React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'pending') }), className: "p-2 text-gray-300 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 active:scale-90"}, React.createElement(Trash2, {size: 18})),
@@ -772,7 +857,7 @@
                         React.createElement("div", {className: "pb-10 animate-in slide-in-from-bottom-8 fade-in duration-700 delay-200"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
                                 React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(History, {size: 16, className: "text-blue-500"}), " 明細紀錄"),
-                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: { id: Date.now(), name: '', amount: '', date: getTaiwanDate() } }); }, className: "text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-full shadow-sm border border-blue-100 hover:bg-blue-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增紀錄")
+                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: { id: Date.now(), name: '', content: '', amount: '', date: getTaiwanDate(), entryDate: getTaiwanDate(), category: activeAirlineData.categoryOptions[0] || '' } }); }, className: "text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-full shadow-sm border border-blue-100 hover:bg-blue-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增紀錄")
                             ),
                             React.createElement("div", {className: "bg-white/50 backdrop-blur-sm rounded-xl p-2 mb-3 flex justify-between items-center text-xs overflow-x-auto no-scrollbar"},
                                 ['date|入帳日', 'expiry|到期日', 'name|名稱', 'amount|哩數'].map(opt => {
@@ -784,15 +869,36 @@
                             React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50 transition-all duration-500"},
                                 sortedRecords.length === 0 && React.createElement("div", {className: "p-8 text-center text-gray-300 text-sm"}, "暫無里程紀錄"),
                                 sortedRecords.map(item => {
-                                    const expiryInfo = calculateExpiryDisplay(item.date, activeAirlineData.expiryRule, activeAirlineData.records, item.amount);
+                                    // Pass both transactionDate (item.date) and entryDate (item.entryDate)
+                                    const expiryInfo = calculateExpiryDisplay(item.date, item.entryDate, activeAirlineData.expiryRule, activeAirlineData.records, item.amount);
                                     const isNegative = item.amount < 0;
+                                    const categoryColorClass = activeAirlineData.categoryColors[item.category] || 'bg-gray-100 text-gray-800';
+                                    
                                     return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group"},
-                                        React.createElement("div", {className: "flex justify-between items-start mb-1.5"}, React.createElement("div", {className: "text-base font-bold text-slate-800"}, item.name), React.createElement("div", {className: `text-lg font-mono font-bold ${isNegative ? 'text-slate-600' : 'text-blue-600'}`}, formatAmountDisplay(item.amount))),
-                                        React.createElement("div", {className: "flex justify-between items-end"},
-                                            React.createElement("div", {className: "flex flex-wrap items-center gap-2"},
+                                        // Line 1: {Category} {Name} {Miles}
+                                        React.createElement("div", {className: "flex justify-between items-center mb-1"}, 
+                                            React.createElement("div", {className: "flex items-center gap-2 max-w-[70%] min-w-0"},
+                                                // Category Tag
+                                                item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 truncate ${categoryColorClass}`}, item.category),
+                                                // Name
+                                                React.createElement("span", {className: "text-base font-bold text-slate-800 truncate"}, item.name)
+                                            ),
+                                            // Miles
+                                            React.createElement("div", {className: `text-lg font-mono font-bold ${isNegative ? 'text-slate-600' : 'text-blue-600'} text-right shrink-0`}, formatAmountDisplay(item.amount))
+                                        ),
+                                        
+                                        // Line 2: {Content}
+                                        item.content && React.createElement("div", {className: "text-sm text-slate-500 mt-1 mb-2 ml-1 truncate"}, item.content),
+
+                                        // Line 3: {入帳日} {到期日} {Edit} {Delete}
+                                        React.createElement("div", {className: "flex justify-between items-center mt-2"},
+                                            React.createElement("div", {className: "flex flex-wrap items-center gap-3"},
+                                                // Transaction Date (入帳日 - for display)
                                                 React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100"}, React.createElement(Calendar, {size: 10, className: "opacity-70"}), " 入帳 ", formatDateForDisplay(item.date)),
+                                                // Expiry Date (到期日)
                                                 expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), " 到期 ", expiryInfo.text)
                                             ),
+                                            // Edit/Delete
                                             React.createElement("div", {className: "flex items-center gap-1 opacity-30 group-hover:opacity-100 transition-opacity duration-200"},
                                                 React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, className: "p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Edit3, {size: 16})),
                                                 React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'record') }), className: "p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Trash2, {size: 16}))
@@ -817,7 +923,7 @@
                             React.createElement("div", {className: "space-y-3 pt-4 border-t border-gray-100"},
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mb-2"}, React.createElement(Clock, {size: 12}), " 里程效期規則"),
                                 React.createElement(ExpiryRuleOption, { type: 'none', title: '終身有效', subtitle: '里程永不過期', icon: React.createElement(ShieldCheck, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'none', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'none' }) }),
-                                React.createElement(ExpiryRuleOption, { type: 'fixed', title: '固定效期', subtitle: '從入帳日開始計算', icon: React.createElement(Calendar, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'fixed', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'fixed' }) }, React.createElement("div", {className: "flex items-center gap-2 mt-1"}, React.createElement("div", {className: "flex-1 flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 pl-3 shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-gray-400 shrink-0"}, "時長"), React.createElement("input", { type: "number", value: activeAirlineData.expiryRule.value || 36, onChange: (e) => updateExpiryRule(activeAirlineData.id, { value: e.target.value }), onClick: (e) => e.stopPropagation(), className: "w-full bg-transparent font-bold text-slate-700 outline-none text-right" })), React.createElement("div", {className: "w-16 bg-gray-50 rounded-lg border border-gray-200 p-2 text-center shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-slate-500"}, "個月")))),
+                                React.createElement(ExpiryRuleOption, { type: 'fixed', title: '固定效期', subtitle: '從入檔日開始計算', icon: React.createElement(Calendar, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'fixed', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'fixed' }) }, React.createElement("div", {className: "flex items-center gap-2 mt-1"}, React.createElement("div", {className: "flex-1 flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 pl-3 shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-gray-400 shrink-0"}, "時長"), React.createElement("input", { type: "number", value: activeAirlineData.expiryRule.value || 36, onChange: (e) => updateExpiryRule(activeAirlineData.id, { value: e.target.value }), onClick: (e) => e.stopPropagation(), className: "w-full bg-transparent font-bold text-slate-700 outline-none text-right" })), React.createElement("div", {className: "w-16 bg-gray-50 rounded-lg border border-gray-200 p-2 text-center shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-slate-500"}, "個月")))),
                                 React.createElement(ExpiryRuleOption, { type: 'activity', title: '滾動效期', subtitle: '從最後活動日刷新', icon: React.createElement(RefreshCw, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'activity', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'activity' }) }, React.createElement("div", {className: "flex items-center gap-2 mt-1"}, React.createElement("div", {className: "flex-1 flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 pl-3 shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-gray-400 shrink-0"}, "延長"), React.createElement("input", { type: "number", value: activeAirlineData.expiryRule.value || 18, onChange: (e) => updateExpiryRule(activeAirlineData.id, { value: e.target.value }), onClick: (e) => e.stopPropagation(), className: "w-full bg-transparent font-bold text-slate-700 outline-none text-right" })), React.createElement("div", {className: "w-16 bg-gray-50 rounded-lg border border-gray-200 p-2 text-center shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-slate-500"}, "個月"))))
                             )
                         ),
@@ -837,9 +943,23 @@
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isEditorClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
                         React.createElement("h3", {className: "text-lg font-bold text-slate-800 mb-6 border-b border-gray-100 pb-3"}, editorState.type === 'record' ? '編輯哩程紀錄' : '編輯待入帳項目'),
                         React.createElement("div", {className: "space-y-4"},
-                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "項目名稱"), React.createElement("input", {value: editorState.data.name, onChange: e => setEditorState({...editorState, data: {...editorState.data, name: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "例如: 台北-東京 來回", autoFocus: true, autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_name_random_string"})),
+                            editorState.type === 'record' && activeAirlineData.categoryOptions.length > 0 && 
+                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "類別"), 
+                                React.createElement(CustomSelect, {value: editorState.data.category || activeAirlineData.categoryOptions[0], options: activeAirlineData.categoryOptions, onChange: val => setEditorState({...editorState, data: {...editorState.data, category: val}})}
+                                )
+                            ),
+                            
+                            // Split 'name' into 'name' and 'content'
+                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "名稱"), React.createElement("input", {value: editorState.data.name, onChange: e => setEditorState({...editorState, data: {...editorState.data, name: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "例如: 台北-東京", autoFocus: true, autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_name_random_string"})),
+
+                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "內容 (選填)"), React.createElement("input", {value: editorState.data.content || '', onChange: e => setEditorState({...editorState, data: {...editorState.data, content: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "例如: JAL JL802", autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_content_random_string"})),
+
+                            // Amount remains the same
                             React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "哩程數額"), React.createElement("input", {type: "number", value: editorState.data.amount, onChange: e => setEditorState({...editorState, data: {...editorState.data, amount: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-mono font-bold text-lg text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "0", autoComplete: "off", name: "record_amount_random_string"})),
-                            editorState.type === 'record' && React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "入帳日期"), React.createElement("input", {type: "date", value: editorState.data.date, onChange: e => setEditorState({...editorState, data: {...editorState.data, date: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}}))
+
+                            editorState.type === 'record' && React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "入帳日期 (顯示用)"), React.createElement("input", {type: "date", value: editorState.data.date, onChange: e => setEditorState({...editorState, data: {...editorState.data, date: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})),
+                            
+                            editorState.type === 'record' && React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "入檔日期 (計算效期用)"), React.createElement("input", {type: "date", value: editorState.data.entryDate, onChange: e => setEditorState({...editorState, data: {...editorState.data, entryDate: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})),
                         ),
                         React.createElement("div", {className: "flex gap-3 mt-8"},
                             React.createElement("button", {onClick: closeEditor, className: "flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors"}, "取消"),
@@ -851,8 +971,12 @@
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isConfirmModalClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
                         React.createElement("h3", {className: "text-lg font-bold text-slate-900 mb-2 border-b border-gray-100 pb-3 flex items-center gap-2"}, React.createElement(CheckCircle2, {size: 20, className: "text-green-500"}), " 確認入帳"),
                         React.createElement("div", {className: "space-y-4 py-2"},
-                            React.createElement("div", null, React.createElement("p", {className: "text-sm font-bold text-slate-800"}, confirmModal.item?.name), React.createElement("p", {className: "text-xs text-orange-500 font-bold mt-1"}, formatAmountDisplay(confirmModal.item?.amount), " Miles")),
-                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block flex items-center gap-1"}, React.createElement(CalendarDays, {size: 12}), " 選擇入帳日期"), React.createElement("input", {type: "date", value: confirmModal.date, onChange: e => setConfirmModal({ ...confirmModal, date: e.target.value }), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}}))
+                            React.createElement("div", null, 
+                                React.createElement("p", {className: "text-sm font-bold text-slate-800"}, confirmModal.item?.name), 
+                                confirmModal.item?.content && React.createElement("p", {className: "text-xs text-slate-500 font-medium mt-0.5"}, confirmModal.item?.content),
+                                React.createElement("p", {className: "text-xs text-orange-500 font-bold mt-1"}, formatAmountDisplay(confirmModal.item?.amount), " Miles")
+                            ),
+                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block flex items-center gap-1"}, React.createElement(CalendarDays, {size: 12}), " 選擇入檔日期 (效期計算基準)"), React.createElement("input", {type: "date", value: confirmModal.date, onChange: e => setConfirmModal({ ...confirmModal, date: e.target.value }), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}}))
                         ),
                         React.createElement("div", {className: "flex gap-3 mt-6"},
                             React.createElement("button", {onClick: closeConfirmModal, className: "flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors"}, "取消"),
