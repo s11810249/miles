@@ -949,10 +949,10 @@
                                             React.createElement("div", {className: "flex flex-wrap items-center gap-2 max-w-[75%]"},
                                                 // Category Tag
                                                 item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 truncate ${categoryColorClass}`}, item.category),
-                                                // Transaction Date (入帳日)
-                                                React.createElement("span", {className: "flex items-center gap-1 text-[10px] text-gray-400 font-medium"}, React.createElement(Calendar, {size: 10}), formatDateForDisplay(item.date)),
-                                                // Expiry Date (到期日)
-                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 text-[10px] font-medium ${expiryInfo.color.replace('bg-', 'text-').replace('text-white', 'text-gray-500')}`}, React.createElement(Clock, {size: 10}), expiryInfo.text)
+                                                // Transaction Date (入帳日) - RESTORED STYLE
+                                                React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100"}, React.createElement(Calendar, {size: 10, className: "opacity-70"}), formatDateForDisplay(item.date)),
+                                                // Expiry Date (到期日) - RESTORED STYLE
+                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), expiryInfo.text)
                                             ),
                                             // Miles
                                             React.createElement("div", {className: `text-lg font-mono font-bold ${isNegative ? 'text-slate-600' : 'text-blue-600'} text-right shrink-0 ml-2`}, formatAmountDisplay(item.amount))
@@ -975,34 +975,6 @@
                         )
                     )
                 ),
-
-                isSettingsOpen && activeAirlineData && React.createElement("div", {className: `fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isSettingsClosing ? 'opacity-0' : 'animate-in fade-in opacity-100'}`},
-                    React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isSettingsClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
-                        React.createElement("div", {className: "flex justify-between items-center mb-6 border-b border-gray-100 pb-4"},
-                            React.createElement("h3", {className: "text-slate-800 font-bold text-lg flex items-center gap-2"}, React.createElement(Settings, {size: 20, className: "text-slate-400"}), " 設定"),
-                            React.createElement("button", {onClick: closeSettings, className: "bg-gray-100 rounded-full p-2 text-gray-500 hover:bg-gray-200 transition-colors"}, React.createElement(X, {size: 18}))
-                        ),
-                        React.createElement("div", {className: "space-y-6 max-h-[60vh] overflow-y-auto px-1 pb-1 no-scrollbar"},
-                            React.createElement("div", {className: "space-y-2"}, React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"}, React.createElement(Hash, {size: 12}), " 會員卡號"), React.createElement("input", {type: "text", value: activeAirlineData.memberId || '', onChange: (e) => updateAirline(activeAirlineData.id, 'memberId', e.target.value), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-2.5 font-mono text-sm text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none uppercase transition-shadow placeholder:font-sans", placeholder: "請輸入會員卡號", autoComplete: "off", name: "member_id_random"})),
-                            React.createElement("div", {className: "space-y-2"}, React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1"}, React.createElement(User, {size: 12}), " 會員等級"), React.createElement(CustomSelect, {value: activeAirlineData.tier, options: activeAirlineData.tierOptions, onChange: (val) => updateAirline(activeAirlineData.id, 'tier', val)})),
-                            React.createElement("div", {className: "space-y-3 pt-4 border-t border-gray-100"},
-                                React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mb-2"}, React.createElement(Clock, {size: 12}), " 里程效期規則"),
-                                React.createElement(ExpiryRuleOption, { type: 'none', title: '終身有效', subtitle: '里程永不過期', icon: React.createElement(ShieldCheck, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'none', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'none' }) }),
-                                React.createElement(ExpiryRuleOption, { type: 'fixed', title: '固定效期', subtitle: '從入檔日開始計算', icon: React.createElement(Calendar, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'fixed', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'fixed' }) }, React.createElement("div", {className: "flex items-center gap-2 mt-1"}, React.createElement("div", {className: "flex-1 flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 pl-3 shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-gray-400 shrink-0"}, "時長"), React.createElement("input", { type: "number", value: activeAirlineData.expiryRule.value || 36, onChange: (e) => updateExpiryRule(activeAirlineData.id, { value: e.target.value }), onClick: (e) => e.stopPropagation(), className: "w-full bg-transparent font-bold text-slate-700 outline-none text-right" })), React.createElement("div", {className: "w-16 bg-gray-50 rounded-lg border border-gray-200 p-2 text-center shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-slate-500"}, "個月")))),
-                                React.createElement(ExpiryRuleOption, { type: 'activity', title: '滾動效期', subtitle: '從最後活動日刷新', icon: React.createElement(RefreshCw, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'activity', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'activity' }) }, React.createElement("div", {className: "flex items-center gap-2 mt-1"}, React.createElement("div", {className: "flex-1 flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 pl-3 shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-gray-400 shrink-0"}, "延長"), React.createElement("input", { type: "number", value: activeAirlineData.expiryRule.value || 18, onChange: (e) => updateExpiryRule(activeAirlineData.id, { value: e.target.value }), onClick: (e) => e.stopPropagation(), className: "w-full bg-transparent font-bold text-slate-700 outline-none text-right" })), React.createElement("div", {className: "w-16 bg-gray-50 rounded-lg border border-gray-200 p-2 text-center shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-slate-500"}, "個月"))))
-                            )
-                        ),
-                        React.createElement("div", {className: "space-y-3 mt-4 border-t border-gray-100 pt-4"},
-                            React.createElement("button", {onClick: () => { showToast('設定已更新'); closeSettings(); }, className: "w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-slate-800 transition-colors active:scale-95"}, "完成設定"),
-                            React.createElement("button", {onClick: () => handleDeleteAirline(activeAirlineData.id), className: "w-full bg-red-50 text-red-500 font-bold py-3.5 rounded-2xl hover:bg-red-100 transition-colors active:scale-95"}, "刪除此卡片")
-                        )
-                    )
-                ),
-
-                // ... (Editor, Confirm Modal same as v1.6)
-                React.createElement(AddAirlineModal, { isOpen: isAddAirlineOpen, onClose: () => setIsAddAirlineOpen(false), onSelect: handleAddAirline, templates: airlineTemplates, isAdmin: isAdmin, onOpenAdmin: () => { setIsAddAirlineOpen(false); setIsAdminModalOpen(true); } }),
-                React.createElement(ReorderModal, { isOpen: isReorderOpen, onClose: () => setIsReorderOpen(false), items: airlines, onMove: moveCard }),
-                React.createElement(AdminTemplateModal, { isOpen: isAdminModalOpen, onClose: () => setIsAdminModalOpen(false), templates: airlineTemplates, onSave: handleSaveTemplates }),
 
                 editorState.isOpen && React.createElement("div", {className: `fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isEditorClosing ? 'opacity-0' : 'animate-in fade-in opacity-100'}`},
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isEditorClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
