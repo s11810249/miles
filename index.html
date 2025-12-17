@@ -598,12 +598,19 @@
             const [isLoggingOut, setIsLoggingOut] = useState(false);
             
             const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
-            const [visibleCount, setVisibleCount] = useState(20); // 新增：預設顯示 10 筆
+            const [visibleCount, setVisibleCount] = useState(15); // 修改：預設顯示 15 筆
             const [isFabOpen, setIsFabOpen] = useState(false);    // 新增：懸浮按鈕開關狀態
+            
+            // 新增：用於控制詳細頁面捲動的 ref
+            const detailScrollRef = useRef(null);
 
             // 新增：切換航空公司時，重置顯示筆數
             useEffect(() => {
-                setVisibleCount(10);
+                setVisibleCount(15);
+                // 重置捲動位置
+                if(detailScrollRef.current) {
+                    detailScrollRef.current.scrollTop = 0;
+                }
             }, [selectedAirlineId]);
 
             // 1. Check Admin & Load Templates & Sync User Data
@@ -799,8 +806,10 @@
                 }));
                 closeEditor(); showToast('儲存成功');
 
-                // 新增：滑動到頁首
-                window.scrollTo({ top: 0, behavior: 'smooth' });
+                // 修正：針對詳細頁面的捲動容器進行滑動，而非 window
+                if(detailScrollRef.current) {
+                    detailScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             };
 
             const executeDelete = (id, type) => {
@@ -833,6 +842,11 @@
                     return { ...a, pending: a.pending.filter(p => p.id !== confirmModal.item.id), records: [confirmedItem, ...a.records] };
                 }));
                 closeConfirmModal(); showToast('哩程已正式入帳');
+                
+                // 確認入帳後也滑動到最上方
+                if(detailScrollRef.current) {
+                    detailScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
+                }
             };
 
             const moveCard = (index, direction) => {
@@ -966,7 +980,8 @@
                         React.createElement("button", {onClick: closeDetail, className: "pointer-events-auto w-10 h-10 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-slate-600 flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110 active:scale-95"}, React.createElement(ChevronLeft, {size: 20})),
                         React.createElement("button", {onClick: () => { setIsSettingsClosing(false); setIsSettingsOpen(true); }, className: "pointer-events-auto w-10 h-10 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-slate-600 flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110 active:scale-95"}, React.createElement(Settings, {size: 20}))
                     ),
-                    React.createElement("div", {className: "flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-w-3xl mx-auto w-full pt-24 relative pb-32"},
+                    // 修正：加上 ref 以控制捲動
+                    React.createElement("div", {ref: detailScrollRef, className: "flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-w-3xl mx-auto w-full pt-24 relative pb-32"},
                         React.createElement("div", {className: "rounded-2xl shadow-xl mt-2 animate-in zoom-in-95 duration-500 w-full md:max-w-md mx-auto"}, React.createElement(AirlineCard, {airline: activeAirlineData, onClick: () => {}, isDetail: true})),
                         // ... (Rest of Detail View remains same)
                         React.createElement("div", {className: "animate-in slide-in-from-bottom-8 fade-in duration-700 delay-100"},
@@ -1058,9 +1073,9 @@
                                     );
                                 })
                             ),
-                             // 查看更多按鈕
+                             // 查看更多按鈕：每次增加 15 筆
                             visibleCount < sortedRecords.length && React.createElement("button", {
-                                onClick: () => setVisibleCount(prev => prev + 10),
+                                onClick: () => setVisibleCount(prev => prev + 15),
                                 className: "w-full mt-4 py-3 bg-white border border-gray-200 text-slate-500 font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
                             }, "查看更多記錄")
                         )
@@ -1184,4 +1199,5 @@
     </script>
 </body>
 </html>
+
 
