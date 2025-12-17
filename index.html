@@ -278,7 +278,6 @@
                 handleChange('tierOptions', tiers);
             };
             
-            // Update local state and sync to main state structure (without breaking typing)
             const handleRawCategoryChange = (val) => {
                 setRawCategories(val);
                 const categories = val.split(',').map(t => t.trim()).filter(t => t);
