@@ -230,8 +230,23 @@
         const AdminTemplateModal = ({ isOpen, onClose, templates, onSave }) => {
             const [editingTemplates, setEditingTemplates] = useState(templates);
             const [selectedIndex, setSelectedIndex] = useState(0);
+            
+            // Local state for free typing
+            const [rawCategories, setRawCategories] = useState('');
+            const [rawColors, setRawColors] = useState('');
 
-            useEffect(() => { setEditingTemplates(templates); }, [templates]);
+            useEffect(() => { 
+                setEditingTemplates(templates); 
+            }, [templates]);
+            
+            // Sync local raw strings when selected template changes
+            useEffect(() => {
+                if (editingTemplates[selectedIndex]) {
+                    const current = editingTemplates[selectedIndex];
+                    setRawCategories((current.categoryOptions || []).join(', '));
+                    setRawColors(Object.entries(current.categoryColors || {}).map(([key, value]) => `${key}=${value}`).join('\n'));
+                }
+            }, [selectedIndex, editingTemplates]);
 
             if (!isOpen) return null;
 
@@ -248,14 +263,17 @@
                 handleChange('tierOptions', tiers);
             };
             
-            const handleCategoryChange = (val) => {
+            // Update local state and sync to main state structure (without breaking typing)
+            const handleRawCategoryChange = (val) => {
+                setRawCategories(val);
                 const categories = val.split(',').map(t => t.trim()).filter(t => t);
                 handleChange('categoryOptions', categories);
             };
 
-            const handleColorChange = (e) => {
+            const handleRawColorChange = (val) => {
+                setRawColors(val);
                 const newColors = {};
-                e.target.value.split('\n').forEach(line => {
+                val.split('\n').forEach(line => {
                     const [key, value] = line.split('=');
                     if (key && value) newColors[key.trim()] = value.trim();
                 });
@@ -265,13 +283,13 @@
             const handleAdd = () => {
                 const newId = prompt("請輸入新航空 ID (例如: ua)");
                 if(newId) {
-                    setEditingTemplates([...editingTemplates, {
+                    setEditingTemplates(prev => [...prev, {
                          id: newId, code: newId.toUpperCase(), name: '新航空', enName: 'New Airline', alliance: null, program: 'Program', tier: 'Member', tierOptions: ['Member'], cardClass: 'bg-slate-700 text-white', logoColor: 'text-white', expiryRule: {type: 'fixed', value: 36, unit: 'month'}, 
                          categoryOptions: ['信用卡轉換', '飛行'], 
                          categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800' },
                          records: [], pending: []
                     }]);
-                    setSelectedIndex(editingTemplates.length);
+                    setSelectedIndex(editingTemplates.length); // State update is async, but for simplicity here
                 }
             };
 
@@ -321,13 +339,13 @@
                                 React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "會員等級 (逗號分隔)"), React.createElement("textarea", {value: current.tierOptions.join(', '), onChange:e=>handleTierChange(e.target.value), className:"w-full border rounded p-2 text-sm h-20"})),
                                 React.createElement("div", {className: "pt-4 border-t border-slate-100"}, 
                                     React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "類別 (逗號分隔)"), 
-                                    React.createElement("textarea", {value: (current.categoryOptions || []).join(', '), onChange: handleCategoryChange, className:"w-full border rounded p-2 text-sm h-20"})
+                                    React.createElement("textarea", {value: rawCategories, onChange: e => handleRawCategoryChange(e.target.value), className:"w-full border rounded p-2 text-sm h-20"})
                                 ),
                                 React.createElement("div", {className: "pt-4 border-t border-slate-100"},
                                     React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "類別顏色 (Tailwind Class, 每行一組，例如：類別名=顏色)"),
                                     React.createElement("textarea", {
-                                        value: Object.entries(current.categoryColors || {}).map(([key, value]) => `${key}=${value}`).join('\n'), 
-                                        onChange: handleColorChange, 
+                                        value: rawColors,
+                                        onChange: e => handleRawColorChange(e.target.value), 
                                         className:"w-full border rounded p-2 text-sm font-mono h-40"
                                     })
                                 ),
@@ -625,9 +643,41 @@
             const handleSaveTemplates = async (newTemplates) => {
                 setAirlineTemplates(newTemplates);
                 setIsAdminModalOpen(false);
+                
+                // UPDATE LOGIC: Sync changes to existing cards
+                // Iterate through existing airlines, if they match a template (by ID prefix), update their definition
+                const updatedAirlines = airlines.map(card => {
+                   const templateId = card.id.split('_')[0]; // Assuming format 'templateId_timestamp'
+                   const matchedTemplate = newTemplates.find(t => t.id === templateId);
+                   
+                   if (matchedTemplate) {
+                       // Merge new template properties but keep user-specific data
+                       return {
+                           ...card,
+                           // Update visual and config properties
+                           name: matchedTemplate.name,
+                           enName: matchedTemplate.enName,
+                           program: matchedTemplate.program,
+                           alliance: matchedTemplate.alliance,
+                           cardClass: matchedTemplate.cardClass,
+                           logoColor: matchedTemplate.logoColor,
+                           expiryRule: matchedTemplate.expiryRule,
+                           categoryOptions: matchedTemplate.categoryOptions,
+                           categoryColors: matchedTemplate.categoryColors,
+                           tierOptions: matchedTemplate.tierOptions,
+                           // Keep user data: id, memberId, tier (value), records, pending
+                       };
+                   }
+                   return card;
+                });
+                
+                if (JSON.stringify(updatedAirlines) !== JSON.stringify(airlines)) {
+                    setAirlines(updatedAirlines);
+                }
+
                 try {
                     await setDoc(doc(db, 'system_data', 'airline_templates'), { templates: newTemplates });
-                    showToast("模板已更新");
+                    showToast("模板及現有卡片已更新");
                 } catch(e) { showToast("儲存模板失敗", "error"); }
             };
 
@@ -686,7 +736,7 @@
                     
                     // Set default category and entryDate if missing for new records
                     let dataToSave = formData;
-                    if (listKey === 'records') {
+                    if (listKey === 'records' || listKey === 'pending') { // Ensure category is set for both
                          dataToSave = { 
                             ...formData, 
                             category: formData.category || (a.categoryOptions && a.categoryOptions[0]) || '',
@@ -715,7 +765,6 @@
                 if (!confirmModal.item) return;
                 
                 // Create a new record with transactionDate as today, and use the selected date as entryDate
-                // FIX 4: Defensive access to categoryOptions
                 const defaultCategory = (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '';
                 
                 const confirmedItem = { 
@@ -725,7 +774,7 @@
                     amount: confirmModal.item.amount, 
                     date: getTaiwanDate(), // Transaction Date (入帳日, for display/general sorting)
                     entryDate: confirmModal.date, // Entry Date (入檔日期, for expiry calculation)
-                    category: defaultCategory // Default category for new entry
+                    category: confirmModal.item.category || defaultCategory // Preserve pending category if exists
                 };
                 
                 setAirlines(prev => prev.map(a => {
@@ -948,8 +997,8 @@
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isEditorClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
                         React.createElement("h3", {className: "text-lg font-bold text-slate-800 mb-6 border-b border-gray-100 pb-3"}, editorState.type === 'record' ? '編輯哩程紀錄' : '編輯待入帳項目'),
                         React.createElement("div", {className: "space-y-4"},
-                            // FIX 1: Defensive access to categoryOptions array
-                            editorState.type === 'record' && activeAirlineData.categoryOptions && activeAirlineData.categoryOptions.length > 0 && 
+                            // FIX 1: Allow showing category selector for both 'record' and 'pending' types
+                            (editorState.type === 'record' || editorState.type === 'pending') && activeAirlineData.categoryOptions && activeAirlineData.categoryOptions.length > 0 && 
                             React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "類別"), 
                                 React.createElement(CustomSelect, {value: editorState.data.category || (activeAirlineData.categoryOptions[0] || ''), options: activeAirlineData.categoryOptions, onChange: val => setEditorState({...editorState, data: {...editorState.data, category: val}})}
                                 )
