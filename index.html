@@ -689,7 +689,7 @@
                     if (listKey === 'records') {
                          dataToSave = { 
                             ...formData, 
-                            category: formData.category || a.categoryOptions[0] || '',
+                            category: formData.category || (a.categoryOptions && a.categoryOptions[0]) || '',
                             entryDate: formData.entryDate || formData.date // Ensure entryDate defaults to date if empty
                         };
                     }
@@ -715,6 +715,9 @@
                 if (!confirmModal.item) return;
                 
                 // Create a new record with transactionDate as today, and use the selected date as entryDate
+                // FIX 4: Defensive access to categoryOptions
+                const defaultCategory = (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '';
+                
                 const confirmedItem = { 
                     id: Date.now(), 
                     name: confirmModal.item.name, 
@@ -722,7 +725,7 @@
                     amount: confirmModal.item.amount, 
                     date: getTaiwanDate(), // Transaction Date (入帳日, for display/general sorting)
                     entryDate: confirmModal.date, // Entry Date (入檔日期, for expiry calculation)
-                    category: activeAirlineData.categoryOptions[0] || '' // Default category for new entry
+                    category: defaultCategory // Default category for new entry
                 };
                 
                 setAirlines(prev => prev.map(a => {
@@ -857,7 +860,7 @@
                         React.createElement("div", {className: "pb-10 animate-in slide-in-from-bottom-8 fade-in duration-700 delay-200"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
                                 React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(History, {size: 16, className: "text-blue-500"}), " 明細紀錄"),
-                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: { id: Date.now(), name: '', content: '', amount: '', date: getTaiwanDate(), entryDate: getTaiwanDate(), category: activeAirlineData.categoryOptions[0] || '' } }); }, className: "text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-full shadow-sm border border-blue-100 hover:bg-blue-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增紀錄")
+                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: { id: Date.now(), name: '', content: '', amount: '', date: getTaiwanDate(), entryDate: getTaiwanDate(), category: (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '' } }); }, className: "text-xs font-bold bg-white text-blue-600 px-3 py-1.5 rounded-full shadow-sm border border-blue-100 hover:bg-blue-50 transition-colors flex items-center gap-1 active:scale-95"}, React.createElement(Plus, {size: 14}), " 新增紀錄")
                             ),
                             React.createElement("div", {className: "bg-white/50 backdrop-blur-sm rounded-xl p-2 mb-3 flex justify-between items-center text-xs overflow-x-auto no-scrollbar"},
                                 ['date|入帳日', 'expiry|到期日', 'name|名稱', 'amount|哩數'].map(opt => {
@@ -872,7 +875,9 @@
                                     // Pass both transactionDate (item.date) and entryDate (item.entryDate)
                                     const expiryInfo = calculateExpiryDisplay(item.date, item.entryDate, activeAirlineData.expiryRule, activeAirlineData.records, item.amount);
                                     const isNegative = item.amount < 0;
-                                    const categoryColorClass = activeAirlineData.categoryColors[item.category] || 'bg-gray-100 text-gray-800';
+                                    // FIX 3: Defensive access to categoryColors
+                                    const categoryColors = activeAirlineData.categoryColors || {};
+                                    const categoryColorClass = categoryColors[item.category] || 'bg-gray-100 text-gray-800';
                                     
                                     return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group"},
                                         // Line 1: {Category} {Name} {Miles}
@@ -943,9 +948,10 @@
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isEditorClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
                         React.createElement("h3", {className: "text-lg font-bold text-slate-800 mb-6 border-b border-gray-100 pb-3"}, editorState.type === 'record' ? '編輯哩程紀錄' : '編輯待入帳項目'),
                         React.createElement("div", {className: "space-y-4"},
-                            editorState.type === 'record' && activeAirlineData.categoryOptions.length > 0 && 
+                            // FIX 1: Defensive access to categoryOptions array
+                            editorState.type === 'record' && activeAirlineData.categoryOptions && activeAirlineData.categoryOptions.length > 0 && 
                             React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "類別"), 
-                                React.createElement(CustomSelect, {value: editorState.data.category || activeAirlineData.categoryOptions[0], options: activeAirlineData.categoryOptions, onChange: val => setEditorState({...editorState, data: {...editorState.data, category: val}})}
+                                React.createElement(CustomSelect, {value: editorState.data.category || (activeAirlineData.categoryOptions[0] || ''), options: activeAirlineData.categoryOptions, onChange: val => setEditorState({...editorState, data: {...editorState.data, category: val}})}
                                 )
                             ),
                             
@@ -959,7 +965,7 @@
 
                             editorState.type === 'record' && React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "入帳日期 (顯示用)"), React.createElement("input", {type: "date", value: editorState.data.date, onChange: e => setEditorState({...editorState, data: {...editorState.data, date: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})),
                             
-                            editorState.type === 'record' && React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "入檔日期 (計算效期用)"), React.createElement("input", {type: "date", value: editorState.data.entryDate, onChange: e => setEditorState({...editorState, data: {...editorState.data, entryDate: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})),
+                            editorState.type === 'record' && React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "入檔日期 (計算效期用)"), React.createElement("input", {type: "date", value: editorState.data.entryDate, onChange: e => setEditorState({...editorState, data: {...editorState.data, entryDate: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}}))
                         ),
                         React.createElement("div", {className: "flex gap-3 mt-8"},
                             React.createElement("button", {onClick: closeEditor, className: "flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors"}, "取消"),
