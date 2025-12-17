@@ -246,6 +246,7 @@
                     const current = editingTemplates[selectedIndex];
                     setRawCategories((current.categoryOptions || []).join(', '));
                     setRawColors(Object.entries(current.categoryColors || {}).map(([key, value]) => `${key}=${value}`).join('\n'));
+                    setRawTiers((current.tierOptions || []).join(', '));
                 }
             }, [selectedIndex]);
 
@@ -280,7 +281,14 @@
                 });
                 handleChange('categoryColors', newColors);
             };
-
+            
+            const handleRawTierChange = (val) => {
+                setRawTiers(val); // 更新輸入框顯示
+                // 切割字串並存回主資料，過濾掉空字串以免產生空白選項
+                const tiers = val.split(',').map(t => t.trim()).filter(t => t);
+                handleChange('tierOptions', tiers);
+            };
+            
             const handleAdd = () => {
                 const newId = prompt("請輸入新航空 ID (例如: ua)");
                 if(newId) {
@@ -337,7 +345,7 @@
                                 React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "計畫名稱"), React.createElement("input", {value: current.program, onChange:e=>handleChange('program', e.target.value), className:"w-full border rounded p-2 text-sm"})),
                                 React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "聯盟 (star/skyteam/oneworld)"), React.createElement("input", {value: current.alliance || '', onChange:e=>handleChange('alliance', e.target.value), className:"w-full border rounded p-2 text-sm"})),
                                 React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "卡片樣式 (Tailwind CSS)"), React.createElement("input", {value: current.cardClass, onChange:e=>handleChange('cardClass', e.target.value), className:"w-full border rounded p-2 text-sm font-mono"})),
-                                React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "會員等級 (逗號分隔)"), React.createElement("textarea", {value: current.tierOptions.join(', '), onChange:e=>handleTierChange(e.target.value), className:"w-full border rounded p-2 text-sm h-20"})),
+                                React.createElement("div", null, React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "會員等級 (逗號分隔)"), React.createElement("textarea", {value: rawTiers, onChange:e=>handleRawTierChange(e.target.value), className:"w-full border rounded p-2 text-sm h-20"})),
                                 React.createElement("div", {className: "pt-4 border-t border-slate-100"}, 
                                     React.createElement("label", {className:"block text-xs font-bold text-slate-400 mb-1"}, "類別 (逗號分隔)"), 
                                     React.createElement("textarea", {value: rawCategories, onChange: e => handleRawCategoryChange(e.target.value), className:"w-full border rounded p-2 text-sm h-20"})
