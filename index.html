@@ -54,6 +54,21 @@
             text-shadow: 1px 1px 2px rgba(0,0,0,0.6);
             letter-spacing: 0.15em;
         }
+        /* Custom scrollbar for textareas */
+        textarea::-webkit-scrollbar {
+            width: 8px;
+        }
+        textarea::-webkit-scrollbar-track {
+            background: #f1f1f1; 
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb {
+            background: #cbd5e1; 
+            border-radius: 4px;
+        }
+        textarea::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; 
+        }
     </style>
 </head>
 <body class="bg-[#f8f9fa] text-slate-800 antialiased selection:bg-blue-100 selection:text-blue-900">
@@ -918,7 +933,7 @@
                                     return React.createElement("button", { key: key, onClick: () => handleSortChange(key), className: `flex items-center gap-1 px-3 py-1.5 rounded-lg font-bold transition-all whitespace-nowrap ${isActive ? 'bg-slate-800 text-white shadow-md' : 'text-slate-500 hover:bg-white hover:text-slate-700'}` }, label, isActive && (sortConfig.direction === 'asc' ? React.createElement(ArrowUp, {size: 12}) : React.createElement(ArrowDown, {size: 12})))
                                 })
                             ),
-                            React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50 transition-all duration-500"},
+                            React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden transition-all duration-500"},
                                 sortedRecords.length === 0 && React.createElement("div", {className: "p-8 text-center text-gray-300 text-sm"}, "暫無里程紀錄"),
                                 sortedRecords.map(item => {
                                     // Pass both transactionDate (item.date) and entryDate (item.entryDate)
@@ -928,35 +943,31 @@
                                     const categoryColors = activeAirlineData.categoryColors || {};
                                     const categoryColorClass = categoryColors[item.category] || 'bg-gray-100 text-gray-800';
                                     
-                                    return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group"},
-                                        // Line 1: {Category} {Name} {Miles}
-                                        React.createElement("div", {className: "flex justify-between items-center mb-1"}, 
-                                            React.createElement("div", {className: "flex items-center gap-2 max-w-[70%] min-w-0"},
+                                    return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group border-b border-gray-50 last:border-0"},
+                                        // Row 1: Category | Date | Expiry ....... Miles
+                                        React.createElement("div", {className: "flex justify-between items-start mb-2"}, 
+                                            React.createElement("div", {className: "flex flex-wrap items-center gap-2 max-w-[75%]"},
                                                 // Category Tag
                                                 item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 truncate ${categoryColorClass}`}, item.category),
-                                                // Name
-                                                React.createElement("span", {className: "text-base font-bold text-slate-800 truncate"}, item.name)
+                                                // Transaction Date (入帳日)
+                                                React.createElement("span", {className: "flex items-center gap-1 text-[10px] text-gray-400 font-medium"}, React.createElement(Calendar, {size: 10}), formatDateForDisplay(item.date)),
+                                                // Expiry Date (到期日)
+                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 text-[10px] font-medium ${expiryInfo.color.replace('bg-', 'text-').replace('text-white', 'text-gray-500')}`}, React.createElement(Clock, {size: 10}), expiryInfo.text)
                                             ),
                                             // Miles
-                                            React.createElement("div", {className: `text-lg font-mono font-bold ${isNegative ? 'text-slate-600' : 'text-blue-600'} text-right shrink-0`}, formatAmountDisplay(item.amount))
+                                            React.createElement("div", {className: `text-lg font-mono font-bold ${isNegative ? 'text-slate-600' : 'text-blue-600'} text-right shrink-0 ml-2`}, formatAmountDisplay(item.amount))
                                         ),
                                         
-                                        // Line 2: {Content}
-                                        item.content && React.createElement("div", {className: "text-sm text-slate-500 mt-1 mb-2 ml-1 truncate"}, item.content),
+                                        // Row 2: Name (Independent line, multiline support)
+                                        React.createElement("div", {className: "text-base font-bold text-slate-800 mb-1 whitespace-pre-wrap break-words leading-snug"}, item.name),
 
-                                        // Line 3: {入帳日} {到期日} {Edit} {Delete}
-                                        React.createElement("div", {className: "flex justify-between items-center mt-2"},
-                                            React.createElement("div", {className: "flex flex-wrap items-center gap-3"},
-                                                // Transaction Date (入帳日 - for display)
-                                                React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100"}, React.createElement(Calendar, {size: 10, className: "opacity-70"}), " 入帳 ", formatDateForDisplay(item.date)),
-                                                // Expiry Date (到期日)
-                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), " 到期 ", expiryInfo.text)
-                                            ),
-                                            // Edit/Delete
-                                            React.createElement("div", {className: "flex items-center gap-1 opacity-30 group-hover:opacity-100 transition-opacity duration-200"},
-                                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, className: "p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Edit3, {size: 16})),
-                                                React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'record') }), className: "p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Trash2, {size: 16}))
-                                            )
+                                        // Row 3: Content (Independent line, multiline support)
+                                        item.content && React.createElement("div", {className: "text-sm text-slate-500 mb-2 whitespace-pre-wrap break-words leading-relaxed"}, item.content),
+
+                                        // Row 4: Buttons (Aligned Right)
+                                        React.createElement("div", {className: "flex justify-end items-center mt-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 h-6"},
+                                            React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, className: "p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Edit3, {size: 16})),
+                                            React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'record') }), className: "p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Trash2, {size: 16}))
                                         )
                                     );
                                 })
@@ -1004,10 +1015,10 @@
                                 )
                             ),
                             
-                            // Split 'name' into 'name' and 'content'
-                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "名稱"), React.createElement("input", {value: editorState.data.name, onChange: e => setEditorState({...editorState, data: {...editorState.data, name: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "例如: 台北-東京", autoFocus: true, autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_name_random_string"})),
+                            // Split 'name' into 'name' and 'content' and change to textarea for multiline support
+                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "名稱"), React.createElement("textarea", {rows: 2, value: editorState.data.name, onChange: e => setEditorState({...editorState, data: {...editorState.data, name: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow resize-none", placeholder: "例如: 台北-東京", autoFocus: true, autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_name_random_string"})),
 
-                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "內容 (選填)"), React.createElement("input", {value: editorState.data.content || '', onChange: e => setEditorState({...editorState, data: {...editorState.data, content: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "例如: JAL JL802", autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_content_random_string"})),
+                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "內容 (選填)"), React.createElement("textarea", {rows: 3, value: editorState.data.content || '', onChange: e => setEditorState({...editorState, data: {...editorState.data, content: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow resize-none", placeholder: "例如: JAL JL802\n艙等: 商務艙", autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_content_random_string"})),
 
                             // Amount remains the same
                             React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "哩程數額"), React.createElement("input", {type: "number", value: editorState.data.amount, onChange: e => setEditorState({...editorState, data: {...editorState.data, amount: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-mono font-bold text-lg text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "0", autoComplete: "off", name: "record_amount_random_string"})),
