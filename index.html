@@ -284,10 +284,10 @@
                 const newId = prompt("請輸入新航空 ID (例如: ua)");
                 if(newId) {
                     setEditingTemplates(prev => [...prev, {
-                         id: newId, code: newId.toUpperCase(), name: '新航空', enName: 'New Airline', alliance: null, program: 'Program', tier: 'Member', tierOptions: ['Member'], cardClass: 'bg-slate-700 text-white', logoColor: 'text-white', expiryRule: {type: 'fixed', value: 36, unit: 'month'}, 
-                         categoryOptions: ['信用卡轉換', '飛行'], 
-                         categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800' },
-                         records: [], pending: []
+                          id: newId, code: newId.toUpperCase(), name: '新航空', enName: 'New Airline', alliance: null, program: 'Program', tier: 'Member', tierOptions: ['Member'], cardClass: 'bg-slate-700 text-white', logoColor: 'text-white', expiryRule: {type: 'fixed', value: 36, unit: 'month'}, 
+                          categoryOptions: ['信用卡轉換', '飛行'], 
+                          categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800' },
+                          records: [], pending: []
                     }]);
                     setSelectedIndex(editingTemplates.length); // State update is async, but for simplicity here
                 }
@@ -465,7 +465,7 @@
                         )
                     ),
                     React.createElement("h1", {className: "text-4xl font-bold text-white tracking-[0.2em] mb-4 font-serif text-shadow"}, "哩程管家"),
-                    React.createElement("p", {className: "text-xs text-gray-500 font-light tracking-[0.5em] uppercase border-t border-white/10 pt-4 mt-2"}, "寰宇萬哩 · 尊榮隨行")
+                    React.createElement("p", {className: "text-xs text-white/60 font-light tracking-[0.5em] uppercase border-t border-white/10 pt-4 mt-2"}, "寰宇萬哩 · 尊榮隨行")
                 ),
                 React.createElement("div", {className: "absolute bottom-24 w-64 h-1 bg-gray-900 rounded-full overflow-hidden"},
                     React.createElement("div", {className: "h-full bg-white rounded-full shadow-[0_0_15px_rgba(255,255,255,0.9)]", style: { width: `${width}%` }})
@@ -587,12 +587,12 @@
             const [isLoggingOut, setIsLoggingOut] = useState(false);
             const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
 
-            // 1. Check Admin & Load Templates
+            // 1. Check Admin & Load Templates & Sync User Data
             useEffect(() => {
                 if (!user || !db) return;
                 
-                // Check Admin
-                const checkAdmin = async () => {
+                const initData = async () => {
+                    // Check Admin
                     try {
                         const roleSnap = await getDoc(doc(db, 'config', 'roles'));
                         if (roleSnap.exists()) {
@@ -600,34 +600,63 @@
                             setIsAdmin(admins.includes(user.email));
                         }
                     } catch (e) { console.error("Admin check fail", e); }
-                };
-                checkAdmin();
 
-                // Load Templates (Fix: Handle empty/missing data gracefully)
-                const loadTemplates = async () => {
+                    // Load Templates
+                    let currentTemplates = DEFAULT_TEMPLATES;
                     try {
                         const tempSnap = await getDoc(doc(db, 'system_data', 'airline_templates'));
-                        if (tempSnap.exists()) {
-                            const data = tempSnap.data();
-                            if (data && data.templates) {
-                                setAirlineTemplates(data.templates);
-                            }
+                        if (tempSnap.exists() && tempSnap.data().templates) {
+                            currentTemplates = tempSnap.data().templates;
                         }
                     } catch (e) { console.error("Template load fail", e); }
-                };
-                loadTemplates();
+                    setAirlineTemplates(currentTemplates);
 
-                // Load User Data
-                const fetchData = async () => {
-                    const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'mileage_data', 'profile');
+                    // Load User Data and SYNC with Templates
                     try {
+                        const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'mileage_data', 'profile');
                         const docSnap = await getDoc(docRef);
-                        if (docSnap.exists()) setAirlines(docSnap.data().data || []);
+                        if (docSnap.exists()) {
+                            const rawData = docSnap.data().data || [];
+                            
+                            // FIX: Sync existing cards with current templates to ensure config (like categories) is up to date
+                            const syncedData = rawData.map(card => {
+                                const templateId = card.id.split('_')[0];
+                                const template = currentTemplates.find(t => t.id === templateId);
+                                if (template) {
+                                     return { 
+                                         ...card, 
+                                         // Update config fields from template
+                                         // Use fallback to DEFAULT options if template ones are missing
+                                         categoryOptions: template.categoryOptions || card.categoryOptions || ['信用卡轉換', '飛行', '活動', '雜項'],
+                                         categoryColors: template.categoryColors || card.categoryColors || {},
+                                         cardClass: template.cardClass,
+                                         logoColor: template.logoColor,
+                                         name: template.name,
+                                         enName: template.enName,
+                                         program: template.program,
+                                         alliance: template.alliance,
+                                         tierOptions: template.tierOptions,
+                                         // Keep user-specific fields
+                                         memberId: card.memberId,
+                                         tier: card.tier,
+                                         records: card.records,
+                                         pending: card.pending,
+                                         expiryRule: card.expiryRule || template.expiryRule
+                                     };
+                                }
+                                // Fallback for custom cards not matching any template
+                                return {
+                                    ...card,
+                                    categoryOptions: card.categoryOptions || ['信用卡轉換', '飛行', '活動', '雜項']
+                                };
+                            });
+                            setAirlines(syncedData);
+                        }
                     } catch (error) { showToast("讀取資料失敗", "error"); } 
                     finally { setIsDataLoaded(true); }
                 };
-                fetchData();
-
+                
+                initData();
             }, [user]);
 
             // Save User Data
@@ -662,8 +691,8 @@
                            cardClass: matchedTemplate.cardClass,
                            logoColor: matchedTemplate.logoColor,
                            expiryRule: matchedTemplate.expiryRule,
-                           categoryOptions: matchedTemplate.categoryOptions,
-                           categoryColors: matchedTemplate.categoryColors,
+                           categoryOptions: matchedTemplate.categoryOptions || ['信用卡轉換', '飛行', '活動', '雜項'],
+                           categoryColors: matchedTemplate.categoryColors || {},
                            tierOptions: matchedTemplate.tierOptions,
                            // Keep user data: id, memberId, tier (value), records, pending
                        };
@@ -737,7 +766,7 @@
                     // Set default category and entryDate if missing for new records
                     let dataToSave = formData;
                     if (listKey === 'records' || listKey === 'pending') { // Ensure category is set for both
-                         dataToSave = { 
+                        dataToSave = { 
                             ...formData, 
                             category: formData.category || (a.categoryOptions && a.categoryOptions[0]) || '',
                             entryDate: formData.entryDate || formData.date // Ensure entryDate defaults to date if empty
@@ -930,39 +959,35 @@
                                     
                                     return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group border-b border-gray-50 last:border-0"},
                                         
-                                        // Row 1: Category (Left) --- Miles (Right)
-                                        React.createElement("div", {className: "flex justify-between items-start mb-2"},
-                                            // Category
-                                            React.createElement("div", null, 
-                                                 item.category && React.createElement("span", {className: `px-2 py-1 rounded-md text-[10px] font-bold tracking-wide ${categoryColorClass}`}, item.category)
-                                            ),
-                                            // Miles
-                                            React.createElement("div", {className: `text-lg font-mono font-bold leading-none ${isNegative ? 'text-slate-600' : 'text-blue-600'}`}, formatAmountDisplay(item.amount))
+                                        // Row 1: Category + Name
+                                        React.createElement("div", {className: "flex items-center gap-2 mb-2"},
+                                            item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 truncate ${categoryColorClass}`}, item.category),
+                                            React.createElement("span", {className: "text-base font-bold text-slate-800 truncate flex-1"}, item.name)
                                         ),
 
-                                        // Row 2: Name
-                                        React.createElement("div", {className: "text-base font-bold text-slate-900 mb-1 leading-snug break-words"}, item.name),
+                                        // Row 2: Content (Left) + Miles (Right)
+                                        React.createElement("div", {className: "flex justify-between items-start mb-2"},
+                                            React.createElement("div", {className: "text-sm text-slate-500 font-medium leading-relaxed break-words mr-4 flex-1"}, item.content || ''),
+                                            React.createElement("div", {className: `text-lg font-mono font-bold leading-none shrink-0 ${isNegative ? 'text-slate-600' : 'text-blue-600'}`}, formatAmountDisplay(item.amount))
+                                        ),
 
-                                        // Row 3: Content (Optional)
-                                        item.content && React.createElement("div", {className: "text-sm text-slate-500 mb-3 leading-relaxed break-words font-medium"}, item.content),
-
-                                        // Row 4: Dates (Left) --- Actions (Right)
-                                        React.createElement("div", {className: "flex justify-between items-end mt-1 pt-2"},
+                                        // Row 3: Dates (Left) + Actions (Right)
+                                        React.createElement("div", {className: "flex justify-between items-center"},
                                             // Dates Container
-                                            React.createElement("div", {className: "flex flex-wrap gap-2"},
+                                            React.createElement("div", {className: "flex flex-wrap items-center gap-2"},
                                                 // Transaction Date
-                                                React.createElement("span", {className: "flex items-center gap-1 text-slate-400 text-[10px] font-medium bg-slate-50 px-2 py-1 rounded-md"}, 
-                                                    React.createElement(Calendar, {size: 10, className:"opacity-70"}), 
-                                                    formatDateForDisplay(item.date)
+                                                React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100"}, 
+                                                    React.createElement(Calendar, {size: 10, className: "opacity-70"}), 
+                                                    "入帳 ", formatDateForDisplay(item.date)
                                                 ),
                                                 // Expiry Date
-                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md ${expiryInfo.color}`}, 
-                                                    React.createElement(Clock, {size: 10, className:"opacity-70"}), 
-                                                    expiryInfo.text
+                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, 
+                                                    React.createElement(Clock, {size: 10, className: "opacity-70"}), 
+                                                    "到期 ", expiryInfo.text
                                                 )
                                             ),
                                             // Actions Container
-                                            React.createElement("div", {className: "flex items-center gap-1"},
+                                            React.createElement("div", {className: "flex items-center gap-1 opacity-30 group-hover:opacity-100 transition-opacity duration-200"},
                                                 React.createElement("button", {
                                                     onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, 
                                                     className: "p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all active:scale-95"
@@ -1061,7 +1086,7 @@
         };
 
         const App = () => {
-            const [loading, setLoading] = useState(false);
+            const [loading, setLoading] = useState(true);
             const [user, setUser] = useState(null);
             useEffect(() => { if (auth) return onAuthStateChanged(auth, (u) => setUser(u)); }, []);
             const handleLogout = async () => { if (auth) await signOut(auth); setUser(null); };
