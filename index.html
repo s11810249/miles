@@ -929,30 +929,28 @@
                                     const categoryColorClass = categoryColors[item.category] || 'bg-gray-100 text-gray-800';
                                     
                                     return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group"},
-                                        // Line 1: {Category} {Name} {Miles}
-                                        React.createElement("div", {className: "flex justify-between items-center mb-1"}, 
-                                            React.createElement("div", {className: "flex items-center gap-2 max-w-[70%] min-w-0"},
+                                        // Line 1: Meta Data (Category + Dates) + Miles
+                                        React.createElement("div", {className: "flex justify-between items-start mb-2 gap-2"}, 
+                                            React.createElement("div", {className: "flex flex-wrap items-center gap-2"},
                                                 // Category Tag
-                                                item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 truncate ${categoryColorClass}`}, item.category),
-                                                // Name
-                                                React.createElement("span", {className: "text-base font-bold text-slate-800 truncate"}, item.name)
+                                                item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${categoryColorClass}`}, item.category),
+                                                // Transaction Date
+                                                React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100 shrink-0"}, React.createElement(Calendar, {size: 10, className: "opacity-70"}), " 入帳 ", formatDateForDisplay(item.date)),
+                                                // Expiry Date
+                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent shrink-0 ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), " 到期 ", expiryInfo.text)
                                             ),
                                             // Miles
-                                            React.createElement("div", {className: `text-lg font-mono font-bold ${isNegative ? 'text-slate-600' : 'text-blue-600'} text-right shrink-0`}, formatAmountDisplay(item.amount))
+                                            React.createElement("div", {className: `text-lg font-mono font-bold leading-none ${isNegative ? 'text-slate-600' : 'text-blue-600'} text-right shrink-0`}, formatAmountDisplay(item.amount))
                                         ),
                                         
-                                        // Line 2: {Content}
-                                        item.content && React.createElement("div", {className: "text-sm text-slate-500 mt-1 mb-2 ml-1 truncate"}, item.content),
+                                        // Line 2: Name (Independent Line, Wrap)
+                                        React.createElement("div", {className: "text-base font-bold text-slate-800 mb-1 break-words leading-tight"}, item.name),
 
-                                        // Line 3: {入帳日} {到期日} {Edit} {Delete}
-                                        React.createElement("div", {className: "flex justify-between items-center mt-2"},
-                                            React.createElement("div", {className: "flex flex-wrap items-center gap-3"},
-                                                // Transaction Date (入帳日 - for display)
-                                                React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100"}, React.createElement(Calendar, {size: 10, className: "opacity-70"}), " 入帳 ", formatDateForDisplay(item.date)),
-                                                // Expiry Date (到期日)
-                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), " 到期 ", expiryInfo.text)
-                                            ),
-                                            // Edit/Delete
+                                        // Line 3: Content (Independent Line, Wrap)
+                                        item.content && React.createElement("div", {className: "text-sm text-slate-500 mb-1 break-words leading-relaxed"}, item.content),
+
+                                        // Line 4: Edit/Delete (Bottom Right)
+                                        React.createElement("div", {className: "flex justify-end items-center mt-1"},
                                             React.createElement("div", {className: "flex items-center gap-1 opacity-30 group-hover:opacity-100 transition-opacity duration-200"},
                                                 React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, className: "p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Edit3, {size: 16})),
                                                 React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'record') }), className: "p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Trash2, {size: 16}))
