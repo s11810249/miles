@@ -278,6 +278,7 @@
                 handleChange('tierOptions', tiers);
             };
             
+            // Update local state and sync to main state structure (without breaking typing)
             const handleRawCategoryChange = (val) => {
                 setRawCategories(val);
                 const categories = val.split(',').map(t => t.trim()).filter(t => t);
@@ -948,10 +949,10 @@
                                             React.createElement("div", {className: "flex flex-wrap items-center gap-2 max-w-[75%]"},
                                                 // Category Tag
                                                 item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 truncate ${categoryColorClass}`}, item.category),
-                                                // Transaction Date (入帳日) - RESTORED STYLE
-                                                React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100"}, React.createElement(Calendar, {size: 10, className: "opacity-70"}), formatDateForDisplay(item.date)),
-                                                // Expiry Date (到期日) - RESTORED STYLE
-                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), expiryInfo.text)
+                                                // Transaction Date (入帳日) - RESTORED STYLE AND LABEL
+                                                React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100"}, React.createElement(Calendar, {size: 10, className: "opacity-70"}), "入帳", formatDateForDisplay(item.date)),
+                                                // Expiry Date (到期日) - RESTORED STYLE AND LABEL
+                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), "到期", expiryInfo.text)
                                             ),
                                             // Miles
                                             React.createElement("div", {className: `text-lg font-mono font-bold ${isNegative ? 'text-slate-600' : 'text-blue-600'} text-right shrink-0 ml-2`}, formatAmountDisplay(item.amount))
@@ -1043,3 +1044,5 @@
     </script>
 </body>
 </html>
+
+
