@@ -928,32 +928,49 @@
                                     const categoryColors = activeAirlineData.categoryColors || {};
                                     const categoryColorClass = categoryColors[item.category] || 'bg-gray-100 text-gray-800';
                                     
-                                    return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group"},
-                                        // Line 1: Meta Data (Category + Dates) + Miles
-                                        React.createElement("div", {className: "flex justify-between items-start mb-2 gap-2"}, 
-                                            React.createElement("div", {className: "flex flex-wrap items-center gap-2"},
-                                                // Category Tag
-                                                item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 ${categoryColorClass}`}, item.category),
-                                                // Transaction Date
-                                                React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100 shrink-0"}, React.createElement(Calendar, {size: 10, className: "opacity-70"}), " 入帳 ", formatDateForDisplay(item.date)),
-                                                // Expiry Date
-                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent shrink-0 ${expiryInfo.color}`}, React.createElement(Clock, {size: 10, className: "opacity-70"}), " 到期 ", expiryInfo.text)
+                                    return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group border-b border-gray-50 last:border-0"},
+                                        
+                                        // Row 1: Category (Left) --- Miles (Right)
+                                        React.createElement("div", {className: "flex justify-between items-start mb-2"},
+                                            // Category
+                                            React.createElement("div", null, 
+                                                 item.category && React.createElement("span", {className: `px-2 py-1 rounded-md text-[10px] font-bold tracking-wide ${categoryColorClass}`}, item.category)
                                             ),
                                             // Miles
-                                            React.createElement("div", {className: `text-lg font-mono font-bold leading-none ${isNegative ? 'text-slate-600' : 'text-blue-600'} text-right shrink-0`}, formatAmountDisplay(item.amount))
+                                            React.createElement("div", {className: `text-lg font-mono font-bold leading-none ${isNegative ? 'text-slate-600' : 'text-blue-600'}`}, formatAmountDisplay(item.amount))
                                         ),
-                                        
-                                        // Line 2: Name (Independent Line, Wrap)
-                                        React.createElement("div", {className: "text-base font-bold text-slate-800 mb-1 break-words leading-tight"}, item.name),
 
-                                        // Line 3: Content (Independent Line, Wrap)
-                                        item.content && React.createElement("div", {className: "text-sm text-slate-500 mb-1 break-words leading-relaxed"}, item.content),
+                                        // Row 2: Name
+                                        React.createElement("div", {className: "text-base font-bold text-slate-900 mb-1 leading-snug break-words"}, item.name),
 
-                                        // Line 4: Edit/Delete (Bottom Right)
-                                        React.createElement("div", {className: "flex justify-end items-center mt-1"},
-                                            React.createElement("div", {className: "flex items-center gap-1 opacity-30 group-hover:opacity-100 transition-opacity duration-200"},
-                                                React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, className: "p-1.5 text-gray-400 hover:text-blue-500 hover:bg-blue-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Edit3, {size: 16})),
-                                                React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'record') }), className: "p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full active:scale-90 transition-transform"}, React.createElement(Trash2, {size: 16}))
+                                        // Row 3: Content (Optional)
+                                        item.content && React.createElement("div", {className: "text-sm text-slate-500 mb-3 leading-relaxed break-words font-medium"}, item.content),
+
+                                        // Row 4: Dates (Left) --- Actions (Right)
+                                        React.createElement("div", {className: "flex justify-between items-end mt-1 pt-2"},
+                                            // Dates Container
+                                            React.createElement("div", {className: "flex flex-wrap gap-2"},
+                                                // Transaction Date
+                                                React.createElement("span", {className: "flex items-center gap-1 text-slate-400 text-[10px] font-medium bg-slate-50 px-2 py-1 rounded-md"}, 
+                                                    React.createElement(Calendar, {size: 10, className:"opacity-70"}), 
+                                                    formatDateForDisplay(item.date)
+                                                ),
+                                                // Expiry Date
+                                                expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 text-[10px] font-bold px-2 py-1 rounded-md ${expiryInfo.color}`}, 
+                                                    React.createElement(Clock, {size: 10, className:"opacity-70"}), 
+                                                    expiryInfo.text
+                                                )
+                                            ),
+                                            // Actions Container
+                                            React.createElement("div", {className: "flex items-center gap-1"},
+                                                React.createElement("button", {
+                                                    onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, 
+                                                    className: "p-2 text-slate-300 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-all active:scale-95"
+                                                }, React.createElement(Edit3, {size: 16})),
+                                                React.createElement("button", {
+                                                    onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'record') }), 
+                                                    className: "p-2 text-slate-300 hover:text-red-600 hover:bg-red-50 rounded-full transition-all active:scale-95"
+                                                }, React.createElement(Trash2, {size: 16}))
                                             )
                                         )
                                     );
@@ -1044,7 +1061,7 @@
         };
 
         const App = () => {
-            const [loading, setLoading] = useState(true);
+            const [loading, setLoading] = useState(false);
             const [user, setUser] = useState(null);
             useEffect(() => { if (auth) return onAuthStateChanged(auth, (u) => setUser(u)); }, []);
             const handleLogout = async () => { if (auth) await signOut(auth); setUser(null); };
