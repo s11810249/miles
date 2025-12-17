@@ -246,7 +246,7 @@
                     setRawCategories((current.categoryOptions || []).join(', '));
                     setRawColors(Object.entries(current.categoryColors || {}).map(([key, value]) => `${key}=${value}`).join('\n'));
                 }
-            }, [selectedIndex, editingTemplates]);
+            }, [selectedIndex]);
 
             if (!isOpen) return null;
 
