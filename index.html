@@ -73,7 +73,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { Plus, Trash2, Wallet, TrendingUp, Plane, Award, User, X, Settings, Calendar, Clock, ArrowDownCircle, Edit3, Check, ChevronLeft, History, CreditCard, Hash, AlertTriangle, CheckCircle2, CalendarDays, LogOut, ShieldCheck, Cloud, CloudOff, PlusCircle, CalendarOff, RefreshCw, Zap, ArrowUpDown, ArrowUp, ArrowDown, MoveUp, MoveDown, List, ChevronDown, Wrench, Save } from 'https://esm.sh/lucide-react@0.294.0';
+        import { Plus, Trash2, Wallet, TrendingUp, Plane, Award, User, X, Settings, Calendar, Clock, ArrowDownCircle, Edit3, Check, ChevronLeft, History, CreditCard, Hash, AlertTriangle, CheckCircle2, CalendarDays, LogOut, ShieldCheck, Cloud, CloudOff, PlusCircle, CalendarOff, RefreshCw, Zap, ArrowUpDown, ArrowUp, ArrowDown, MoveUp, MoveDown, List, ChevronDown, Wrench, Save, Upload } from 'https://esm.sh/lucide-react@0.294.0';
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -603,6 +603,8 @@
             
             // 新增：用於控制詳細頁面捲動的 ref
             const detailScrollRef = useRef(null);
+            // 新增：檔案上傳 ref
+            const fileInputRef = useRef(null);
 
             // 新增：切換航空公司時，重置顯示筆數
             useEffect(() => {
@@ -735,6 +737,65 @@
                     showToast("模板及現有卡片已更新");
                 } catch(e) { showToast("儲存模板失敗", "error"); }
             };
+
+            // 新增：處理 CSV 檔案上傳
+            const handleFileChange = (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    try {
+                        const text = event.target.result;
+                        const lines = text.split('\n').map(l => l.trim()).filter(l => l);
+                        if (lines.length < 2) throw new Error("檔案格式錯誤或無資料");
+                        
+                        const headers = lines[0].split(',').map(h => h.trim());
+                        // 檢查必要的標頭
+                        if (!headers.includes('amount') || !headers.includes('date') || !headers.includes('name')) {
+                             throw new Error("缺少必要欄位 (amount, date, name)");
+                        }
+                        
+                        const newRecords = lines.slice(1).map((line, index) => {
+                            // 簡易 CSV 解析，處理引號
+                            const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
+                            
+                            const record = {};
+                            headers.forEach((header, i) => {
+                                record[header] = values[i];
+                            });
+
+                            if (!record.name || !record.date || !record.amount) return null;
+
+                            return {
+                                id: Date.now() + index, // Ensure unique ID
+                                name: record.name,
+                                content: record.content || '',
+                                category: record.category || (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '雜項',
+                                amount: record.amount, 
+                                date: record.date,
+                                entryDate: record.entryDate || record.date
+                            };
+                        }).filter(r => r !== null);
+
+                        if (newRecords.length === 0) throw new Error("無有效資料可匯入");
+
+                        setAirlines(prev => prev.map(a => {
+                            if (a.id !== selectedAirlineId) return a;
+                            return { ...a, records: [...newRecords, ...a.records] };
+                        }));
+                        
+                        showToast(`成功匯入 ${newRecords.length} 筆資料`);
+                        closeSettings();
+                    } catch (err) {
+                        console.error(err);
+                        showToast("匯入失敗: " + err.message, "error");
+                    }
+                    e.target.value = ''; // Reset input
+                };
+                reader.readAsText(file);
+            };
+
 
             const stats = useMemo(() => {
                 let totalCurrent = 0;
@@ -1098,6 +1159,14 @@
                                 React.createElement(ExpiryRuleOption, { type: 'activity', title: '滾動效期', subtitle: '從最後活動日刷新', icon: React.createElement(RefreshCw, {size: 20}), isActive: activeAirlineData.expiryRule.type === 'activity', onClick: () => updateExpiryRule(activeAirlineData.id, { type: 'activity' }) }, React.createElement("div", {className: "flex items-center gap-2 mt-1"}, React.createElement("div", {className: "flex-1 flex items-center gap-2 bg-white rounded-lg border border-gray-200 p-1 pl-3 shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-gray-400 shrink-0"}, "延長"), React.createElement("input", { type: "number", value: activeAirlineData.expiryRule.value || 18, onChange: (e) => updateExpiryRule(activeAirlineData.id, { value: e.target.value }), onClick: (e) => e.stopPropagation(), className: "w-full bg-transparent font-bold text-slate-700 outline-none text-right" })), React.createElement("div", {className: "w-16 bg-gray-50 rounded-lg border border-gray-200 p-2 text-center shadow-sm"}, React.createElement("span", {className: "text-xs font-bold text-slate-500"}, "個月"))))
                             )
                         ),
+                        
+                        // 新增：匯入 CSV 按鈕
+                        React.createElement("div", {className: "space-y-3 pt-4 border-t border-gray-100"},
+                            React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mb-2"}, React.createElement(Upload, {size: 12}), " 資料匯入"),
+                            React.createElement("input", {type: "file", ref: fileInputRef, onChange: handleFileChange, accept: ".csv", className: "hidden"}),
+                            React.createElement("button", {onClick: () => fileInputRef.current.click(), className: "w-full flex items-center justify-center gap-2 bg-blue-50 text-blue-600 font-bold py-3.5 rounded-2xl border border-blue-100 hover:bg-blue-100 transition-colors active:scale-95"}, React.createElement(Upload, {size: 18}), "匯入 CSV 紀錄")
+                        ),
+
                         React.createElement("div", {className: "space-y-3 mt-4 border-t border-gray-100 pt-4"},
                             React.createElement("button", {onClick: () => { showToast('設定已更新'); closeSettings(); }, className: "w-full bg-slate-900 text-white font-bold py-3.5 rounded-2xl shadow-lg hover:bg-slate-800 transition-colors active:scale-95"}, "完成設定"),
                             React.createElement("button", {onClick: () => handleDeleteAirline(activeAirlineData.id), className: "w-full bg-red-50 text-red-500 font-bold py-3.5 rounded-2xl hover:bg-red-100 transition-colors active:scale-95"}, "刪除此卡片")
@@ -1199,5 +1268,3 @@
     </script>
 </body>
 </html>
-
-
