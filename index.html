@@ -667,14 +667,16 @@
                                          // Keep user-specific fields
                                          memberId: card.memberId,
                                          tier: card.tier,
-                                         records: card.records,
-                                         pending: card.pending,
+                                         records: card.records || [], // FIX: Default to empty array
+                                         pending: card.pending || [], // FIX: Default to empty array
                                          expiryRule: card.expiryRule || template.expiryRule
                                      };
                                 }
                                 // Fallback for custom cards not matching any template
                                 return {
                                     ...card,
+                                    records: card.records || [], // FIX: Default to empty array
+                                    pending: card.pending || [], // FIX: Default to empty array
                                     categoryOptions: card.categoryOptions || ['信用卡轉換', '飛行', '活動', '雜項']
                                 };
                             });
@@ -801,8 +803,8 @@
                 let totalCurrent = 0;
                 let totalPending = 0;
                 airlines.forEach(a => {
-                    const current = a.records.reduce((acc, r) => acc + (parseInt(r.amount) || 0), 0);
-                    const pending = a.pending.reduce((acc, i) => acc + (parseInt(i.amount) || 0), 0);
+                    const current = (a.records || []).reduce((acc, r) => acc + (parseInt(r.amount) || 0), 0);
+                    const pending = (a.pending || []).reduce((acc, i) => acc + (parseInt(i.amount) || 0), 0);
                     totalCurrent += current;
                     totalPending += pending;
                 });
@@ -856,11 +858,13 @@
                         dataToSave = { 
                             ...formData, 
                             category: formData.category || (a.categoryOptions && a.categoryOptions[0]) || '',
-                            entryDate: formData.entryDate || formData.date // Ensure entryDate defaults to date if empty
+                            // FIX: Ensure entryDate is not undefined (Firestore rejects undefined)
+                            // Use null or empty string if date is missing (e.g. for pending items)
+                            entryDate: formData.entryDate || formData.date || null 
                         };
                     }
 
-                    const list = a[listKey];
+                    const list = a[listKey] || []; // FIX: Default to empty array
                     const isNew = !list.find(i => i.id === dataToSave.id);
                     let newList = isNew ? [dataToSave, ...list] : list.map(i => i.id === dataToSave.id ? dataToSave : i);
                     return { ...a, [listKey]: newList };
@@ -900,7 +904,10 @@
                 
                 setAirlines(prev => prev.map(a => {
                     if (a.id !== selectedAirlineId) return a;
-                    return { ...a, pending: a.pending.filter(p => p.id !== confirmModal.item.id), records: [confirmedItem, ...a.records] };
+                    // FIX: Ensure lists exist
+                    const pendingList = a.pending || [];
+                    const recordsList = a.records || [];
+                    return { ...a, pending: pendingList.filter(p => p.id !== confirmModal.item.id), records: [confirmedItem, ...recordsList] };
                 }));
                 closeConfirmModal(); showToast('哩程已正式入帳');
                 
@@ -922,7 +929,7 @@
             // 複雜排序邏輯
             const sortedRecords = useMemo(() => {
                 if (!activeAirlineData) return [];
-                const records = [...activeAirlineData.records];
+                const records = [...(activeAirlineData.records || [])];
                 
                 return records.sort((a, b) => {
                     // 輔助比較函式
@@ -1051,8 +1058,8 @@
                                 // 移除舊的新增按鈕
                             ),
                             React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50 transition-all duration-500"},
-                                activeAirlineData.pending.length === 0 && React.createElement("div", {className: "p-8 text-center text-gray-300 text-sm"}, "暫無待入帳項目"),
-                                activeAirlineData.pending.map(item => React.createElement("div", {key: item.id, className: "p-4 flex items-center justify-between hover:bg-orange-50/30 transition-colors duration-300 group"},
+                                (activeAirlineData.pending || []).length === 0 && React.createElement("div", {className: "p-8 text-center text-gray-300 text-sm"}, "暫無待入帳項目"),
+                                (activeAirlineData.pending || []).map(item => React.createElement("div", {key: item.id, className: "p-4 flex items-center justify-between hover:bg-orange-50/30 transition-colors duration-300 group"},
                                     React.createElement("div", null, 
                                         React.createElement("div", {className: "text-base font-bold text-slate-800"}, item.name), 
                                         item.content && React.createElement("div", {className: "text-xs text-slate-500 mt-0.5"}, item.content),
