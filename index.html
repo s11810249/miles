@@ -581,7 +581,6 @@
             const [isReorderOpen, setIsReorderOpen] = useState(false); 
             
             const [editorState, setEditorState] = useState({ isOpen: false, type: null, data: null }); 
-            // 修正 confirmModal 狀態，加入 transactionDate
             const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, date: '', transactionDate: '' });
             const [toast, setToast] = useState({ message: '', type: '', isVisible: false });
             const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, confirmText: '確認刪除', confirmColorClass: 'bg-red-500' });
@@ -859,7 +858,6 @@
                 closeConfirm(); showToast('項目已刪除', 'error');
             };
 
-            // 修正：確認入帳邏輯，同時儲存 TransactionDate 與 EntryDate
             const executeConfirm = () => {
                 if (!confirmModal.item) return;
                 
@@ -870,8 +868,8 @@
                     name: confirmModal.item.name, 
                     content: confirmModal.item.content || '',
                     amount: confirmModal.item.amount, 
-                    date: confirmModal.transactionDate || getTaiwanDate(), // Transaction Date (入帳日)
-                    entryDate: confirmModal.date || getTaiwanDate(), // Entry Date (入檔日)
+                    date: confirmModal.transactionDate || getTaiwanDate(), 
+                    entryDate: confirmModal.date || getTaiwanDate(), 
                     category: confirmModal.item.category || defaultCategory 
                 };
                 
@@ -997,7 +995,6 @@
                         React.createElement("div", {className: "animate-in slide-in-from-bottom-8 fade-in duration-700 delay-100"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
                                 React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(TrendingUp, {size: 16, className: "text-orange-500"}), " 待入帳"),
-                                // 修正：待入帳區域標題旁的新增按鈕，改為簡單的圓形加號
                                 React.createElement("button", {
                                     onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: { id: Date.now(), name: '', content: '', amount: '' } }); },
                                     className: "w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center hover:bg-orange-200 transition-colors shadow-sm"
@@ -1015,8 +1012,11 @@
                                         React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: item }); }, className: "p-2 text-gray-300 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50 active:scale-90"}, React.createElement(Edit3, {size: 18})),
                                         React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'pending') }), className: "p-2 text-gray-300 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 active:scale-90"}, React.createElement(Trash2, {size: 18})),
                                         React.createElement("div", {className: "w-px h-6 bg-gray-200 mx-1"}),
-                                        // 修正：點擊入帳時，初始化兩個日期為今天
-                                        React.createElement("button", {onClick: () => { setIsConfirmModalClosing(false); setConfirmModal({ isOpen: true, item: item, date: formatDateForInput(new Date()), transactionDate: formatDateForInput(new Date()) }); }, className: "flex items-center gap-1.5 bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-slate-700 active:scale-95 transition-all shadow-md"}, React.createElement(ArrowDownCircle, {size: 14}), " 入帳")
+                                        // 修正：此處按鈕改為圓形加號按鈕，並在點擊時帶入兩個日期預設值
+                                        React.createElement("button", {
+                                            onClick: () => { setIsConfirmModalClosing(false); setConfirmModal({ isOpen: true, item: item, date: formatDateForInput(new Date()), transactionDate: formatDateForInput(new Date()) }); }, 
+                                            className: "w-8 h-8 rounded-full bg-slate-800 text-white flex items-center justify-center hover:bg-slate-700 active:scale-95 transition-all shadow-md"
+                                        }, React.createElement(Plus, {size: 16}))
                                     )
                                 ))
                             )
@@ -1025,7 +1025,6 @@
                         React.createElement("div", {className: "pb-10 animate-in slide-in-from-bottom-8 fade-in duration-700 delay-200"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
                                 React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(History, {size: 16, className: "text-blue-500"}), " 明細紀錄"),
-                                // 修正：明細紀錄區域標題旁的新增按鈕，改為簡單的圓形加號
                                 React.createElement("button", {
                                     onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: { id: Date.now(), name: '', content: '', amount: '', date: getTaiwanDate(), entryDate: getTaiwanDate(), category: (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '' } }); },
                                     className: "w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors shadow-sm"
@@ -1152,7 +1151,6 @@
                     )
                 ),
                 
-                // 修正：確認入帳對話框，增加兩個日期的輸入欄位
                 confirmModal.isOpen && React.createElement("div", {className: `fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isConfirmModalClosing ? 'opacity-0' : 'animate-in fade-in opacity-100'}`},
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isConfirmModalClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
                         React.createElement("h3", {className: "text-lg font-bold text-slate-900 mb-2 border-b border-gray-100 pb-3 flex items-center gap-2"}, React.createElement(CheckCircle2, {size: 20, className: "text-green-500"}), " 確認入帳"),
@@ -1163,13 +1161,11 @@
                                 React.createElement("p", {className: "text-xs text-orange-500 font-bold mt-1"}, formatAmountDisplay(confirmModal.item?.amount), " Miles")
                             ),
                             
-                            // 新增：入帳日期輸入
                             React.createElement("div", null, 
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block flex items-center gap-1"}, React.createElement(Calendar, {size: 12}), " 入帳日期 (實際消費/搭乘日)"), 
                                 React.createElement("input", {type: "date", value: confirmModal.transactionDate, onChange: e => setConfirmModal({ ...confirmModal, transactionDate: e.target.value }), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})
                             ),
 
-                            // 原有：入檔日期輸入
                             React.createElement("div", null, 
                                 React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block flex items-center gap-1"}, React.createElement(CalendarDays, {size: 12}), " 入檔日期 (里程入戶日/效期基準)"), 
                                 React.createElement("input", {type: "date", value: confirmModal.date, onChange: e => setConfirmModal({ ...confirmModal, date: e.target.value }), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})
