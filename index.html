@@ -73,7 +73,7 @@
         import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js';
         import { getAuth, signInWithPopup, GoogleAuthProvider, signOut, onAuthStateChanged } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
         import { getFirestore, doc, setDoc, getDoc } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js';
-        import { Plus, Trash2, Wallet, TrendingUp, Plane, Award, User, X, Settings, Calendar, Clock, ArrowDownCircle, Edit3, Check, ChevronLeft, History, CreditCard, Hash, AlertTriangle, CheckCircle2, CalendarDays, LogOut, ShieldCheck, Cloud, CloudOff, PlusCircle, CalendarOff, RefreshCw, Zap, ArrowUpDown, ArrowUp, ArrowDown, MoveUp, MoveDown, List, ChevronDown, Wrench, Save, Upload } from 'https://esm.sh/lucide-react@0.294.0';
+        import { Plus, Trash2, Wallet, TrendingUp, Plane, Award, User, X, Settings, Calendar, Clock, ArrowDownCircle, Edit3, Check, ChevronLeft, History, CreditCard, Hash, AlertTriangle, CheckCircle2, CalendarDays, LogOut, ShieldCheck, Cloud, CloudOff, PlusCircle, CalendarOff, RefreshCw, Zap, ArrowUpDown, ArrowUp, ArrowDown, MoveUp, MoveDown, List, ChevronDown, Wrench, Save, Upload, Receipt } from 'https://esm.sh/lucide-react@0.294.0';
 
         // --- Firebase Configuration ---
         const firebaseConfig = {
@@ -172,7 +172,7 @@
             return { text: dateString, color: 'text-gray-500 bg-gray-50' };
         };
 
-        // --- Default Templates (Fallback) ---
+        // --- Default Templates ---
         const DEFAULT_TEMPLATES = [
             { id: 'ci', code: 'CI', name: '中華航空', enName: 'China Airlines', alliance: 'skyteam', program: '華夏會員', tier: '金卡', memberId: '', tierOptions: ['華夏會員', '金卡', '翡翠卡', '晶鑽卡'], cardClass: 'bg-gradient-to-br from-[#4a1050] to-[#862562] text-white', logoColor: 'text-purple-900', expiryRule: { type: 'activity', value: 36, unit: 'month' }, 
             categoryOptions: ['信用卡轉換', '飛行', '活動', '雜項'], 
@@ -242,21 +242,20 @@
             // Local state for free typing
             const [rawCategories, setRawCategories] = useState('');
             const [rawColors, setRawColors] = useState('');
-            const [rawTiers, setRawTiers] = useState(''); // 新增：會員等級自由輸入
+            const [rawTiers, setRawTiers] = useState(''); 
 
             useEffect(() => { 
                 setEditingTemplates(templates); 
             }, [templates]);
             
-            // Sync local raw strings when selected template changes
             useEffect(() => {
                 if (editingTemplates[selectedIndex]) {
                     const current = editingTemplates[selectedIndex];
                     setRawCategories((current.categoryOptions || []).join(', '));
                     setRawColors(Object.entries(current.categoryColors || {}).map(([key, value]) => `${key}=${value}`).join('\n'));
-                    setRawTiers((current.tierOptions || []).join(', ')); // 同步會員等級
+                    setRawTiers((current.tierOptions || []).join(', '));
                 }
-            }, [selectedIndex]); // 修正：移除 editingTemplates，只在切換模板時同步，解決輸入被重置的問題
+            }, [selectedIndex]); 
 
             if (!isOpen) return null;
 
@@ -268,7 +267,6 @@
                 setEditingTemplates(newTemplates);
             };
             
-            // Update local state and sync to main state structure (without breaking typing)
             const handleRawCategoryChange = (val) => {
                 setRawCategories(val);
                 const categories = val.split(',').map(t => t.trim()).filter(t => t);
@@ -300,7 +298,7 @@
                           categoryColors: { '信用卡轉換': 'bg-blue-100 text-blue-800', '飛行': 'bg-green-100 text-green-800' },
                           records: [], pending: []
                     }]);
-                    setSelectedIndex(editingTemplates.length); // State update is async, but for simplicity here
+                    setSelectedIndex(editingTemplates.length); 
                 }
             };
 
@@ -374,8 +372,6 @@
 
         const AddAirlineModal = ({ isOpen, onClose, onSelect, templates, isAdmin, onOpenAdmin }) => {
             if (!isOpen) return null;
-            
-            // Fix: Fallback to DEFAULT_TEMPLATES if templates prop is undefined or not an array
             const displayTemplates = (Array.isArray(templates) && templates.length > 0) ? templates : DEFAULT_TEMPLATES;
 
             return React.createElement("div", {className: "fixed inset-0 z-[100] bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center animate-in fade-in duration-300"},
@@ -409,8 +405,6 @@
 
         const AirlineCard = ({ airline, onClick, isDetail = false }) => {
             const currentBalance = airline.records.reduce((acc, r) => acc + (parseInt(r.amount)||0), 0);
-            
-            // Fix: Use h-auto and min-h to allow growth, remove fixed aspect ratio on mobile
             const wrapperClass = isDetail 
                 ? "w-full mx-auto shadow-none transition-all duration-500 h-auto min-h-[200px]" 
                 : "cursor-pointer shadow-xl shadow-gray-200/50 hover:shadow-2xl hover:shadow-gray-300/40 hover:-translate-y-1 transition-all duration-500 ease-out group h-auto min-h-[200px] md:aspect-[1.586/1]";
@@ -587,7 +581,8 @@
             const [isReorderOpen, setIsReorderOpen] = useState(false); 
             
             const [editorState, setEditorState] = useState({ isOpen: false, type: null, data: null }); 
-            const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, date: '' });
+            // 修正 confirmModal 狀態，加入 transactionDate
+            const [confirmModal, setConfirmModal] = useState({ isOpen: false, item: null, date: '', transactionDate: '' });
             const [toast, setToast] = useState({ message: '', type: '', isVisible: false });
             const [confirmDialog, setConfirmDialog] = useState({ isOpen: false, title: '', message: '', onConfirm: null, confirmText: '確認刪除', confirmColorClass: 'bg-red-500' });
             
@@ -598,18 +593,14 @@
             const [isLoggingOut, setIsLoggingOut] = useState(false);
             
             const [sortConfig, setSortConfig] = useState({ key: 'date', direction: 'desc' });
-            const [visibleCount, setVisibleCount] = useState(15); // 修改：預設顯示 15 筆
-            const [isFabOpen, setIsFabOpen] = useState(false);    // 新增：懸浮按鈕開關狀態
+            const [visibleCount, setVisibleCount] = useState(15); 
+            const [isFabOpen, setIsFabOpen] = useState(false);   
             
-            // 新增：用於控制詳細頁面捲動的 ref
             const detailScrollRef = useRef(null);
-            // 新增：檔案上傳 ref
             const fileInputRef = useRef(null);
 
-            // 新增：切換航空公司時，重置顯示筆數
             useEffect(() => {
                 setVisibleCount(15);
-                // 重置捲動位置
                 if(detailScrollRef.current) {
                     detailScrollRef.current.scrollTop = 0;
                 }
@@ -639,22 +630,18 @@
                     } catch (e) { console.error("Template load fail", e); }
                     setAirlineTemplates(currentTemplates);
 
-                    // Load User Data and SYNC with Templates
+                    // Load User Data
                     try {
                         const docRef = doc(db, 'artifacts', appId, 'users', user.uid, 'mileage_data', 'profile');
                         const docSnap = await getDoc(docRef);
                         if (docSnap.exists()) {
                             const rawData = docSnap.data().data || [];
-                            
-                            // FIX: Sync existing cards with current templates to ensure config (like categories) is up to date
                             const syncedData = rawData.map(card => {
                                 const templateId = card.id.split('_')[0];
                                 const template = currentTemplates.find(t => t.id === templateId);
                                 if (template) {
                                      return { 
                                          ...card, 
-                                         // Update config fields from template
-                                         // Use fallback to DEFAULT options if template ones are missing
                                          categoryOptions: template.categoryOptions || card.categoryOptions || ['信用卡轉換', '飛行', '活動', '雜項'],
                                          categoryColors: template.categoryColors || card.categoryColors || {},
                                          cardClass: template.cardClass,
@@ -664,19 +651,17 @@
                                          program: template.program,
                                          alliance: template.alliance,
                                          tierOptions: template.tierOptions,
-                                         // Keep user-specific fields
                                          memberId: card.memberId,
                                          tier: card.tier,
-                                         records: card.records || [], // FIX: Default to empty array
-                                         pending: card.pending || [], // FIX: Default to empty array
+                                         records: card.records || [], 
+                                         pending: card.pending || [], 
                                          expiryRule: card.expiryRule || template.expiryRule
                                      };
                                 }
-                                // Fallback for custom cards not matching any template
                                 return {
                                     ...card,
-                                    records: card.records || [], // FIX: Default to empty array
-                                    pending: card.pending || [], // FIX: Default to empty array
+                                    records: card.records || [], 
+                                    pending: card.pending || [], 
                                     categoryOptions: card.categoryOptions || ['信用卡轉換', '飛行', '活動', '雜項']
                                 };
                             });
@@ -703,17 +688,13 @@
                 setAirlineTemplates(newTemplates);
                 setIsAdminModalOpen(false);
                 
-                // UPDATE LOGIC: Sync changes to existing cards
-                // Iterate through existing airlines, if they match a template (by ID prefix), update their definition
                 const updatedAirlines = airlines.map(card => {
-                   const templateId = card.id.split('_')[0]; // Assuming format 'templateId_timestamp'
+                   const templateId = card.id.split('_')[0]; 
                    const matchedTemplate = newTemplates.find(t => t.id === templateId);
                    
                    if (matchedTemplate) {
-                       // Merge new template properties but keep user-specific data
                        return {
                            ...card,
-                           // Update visual and config properties
                            name: matchedTemplate.name,
                            enName: matchedTemplate.enName,
                            program: matchedTemplate.program,
@@ -724,7 +705,6 @@
                            categoryOptions: matchedTemplate.categoryOptions || ['信用卡轉換', '飛行', '活動', '雜項'],
                            categoryColors: matchedTemplate.categoryColors || {},
                            tierOptions: matchedTemplate.tierOptions,
-                           // Keep user data: id, memberId, tier (value), records, pending
                        };
                    }
                    return card;
@@ -740,7 +720,6 @@
                 } catch(e) { showToast("儲存模板失敗", "error"); }
             };
 
-            // 新增：處理 CSV 檔案上傳
             const handleFileChange = (e) => {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -753,13 +732,11 @@
                         if (lines.length < 2) throw new Error("檔案格式錯誤或無資料");
                         
                         const headers = lines[0].split(',').map(h => h.trim());
-                        // 檢查必要的標頭
                         if (!headers.includes('amount') || !headers.includes('date') || !headers.includes('name')) {
                              throw new Error("缺少必要欄位 (amount, date, name)");
                         }
                         
                         const newRecords = lines.slice(1).map((line, index) => {
-                            // 簡易 CSV 解析，處理引號
                             const values = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(v => v.trim().replace(/^"|"$/g, ''));
                             
                             const record = {};
@@ -770,7 +747,7 @@
                             if (!record.name || !record.date || !record.amount) return null;
 
                             return {
-                                id: Date.now() + index, // Ensure unique ID
+                                id: Date.now() + index, 
                                 name: record.name,
                                 content: record.content || '',
                                 category: record.category || (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '雜項',
@@ -793,7 +770,7 @@
                         console.error(err);
                         showToast("匯入失敗: " + err.message, "error");
                     }
-                    e.target.value = ''; // Reset input
+                    e.target.value = ''; 
                 };
                 reader.readAsText(file);
             };
@@ -852,26 +829,22 @@
                     if (a.id !== selectedAirlineId) return a;
                     const listKey = editorState.type === 'record' ? 'records' : 'pending';
                     
-                    // Set default category and entryDate if missing for new records
                     let dataToSave = formData;
-                    if (listKey === 'records' || listKey === 'pending') { // Ensure category is set for both
+                    if (listKey === 'records' || listKey === 'pending') { 
                         dataToSave = { 
                             ...formData, 
                             category: formData.category || (a.categoryOptions && a.categoryOptions[0]) || '',
-                            // FIX: Ensure entryDate is not undefined (Firestore rejects undefined)
-                            // Use null or empty string if date is missing (e.g. for pending items)
                             entryDate: formData.entryDate || formData.date || null 
                         };
                     }
 
-                    const list = a[listKey] || []; // FIX: Default to empty array
+                    const list = a[listKey] || []; 
                     const isNew = !list.find(i => i.id === dataToSave.id);
                     let newList = isNew ? [dataToSave, ...list] : list.map(i => i.id === dataToSave.id ? dataToSave : i);
                     return { ...a, [listKey]: newList };
                 }));
                 closeEditor(); showToast('儲存成功');
 
-                // 修正：針對詳細頁面的捲動容器進行滑動，而非 window
                 if(detailScrollRef.current) {
                     detailScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
                 }
@@ -886,10 +859,10 @@
                 closeConfirm(); showToast('項目已刪除', 'error');
             };
 
+            // 修正：確認入帳邏輯，同時儲存 TransactionDate 與 EntryDate
             const executeConfirm = () => {
                 if (!confirmModal.item) return;
                 
-                // Create a new record with transactionDate as today, and use the selected date as entryDate
                 const defaultCategory = (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '';
                 
                 const confirmedItem = { 
@@ -897,21 +870,19 @@
                     name: confirmModal.item.name, 
                     content: confirmModal.item.content || '',
                     amount: confirmModal.item.amount, 
-                    date: getTaiwanDate(), // Transaction Date (入帳日, for display/general sorting)
-                    entryDate: confirmModal.date, // Entry Date (入檔日期, for expiry calculation)
-                    category: confirmModal.item.category || defaultCategory // Preserve pending category if exists
+                    date: confirmModal.transactionDate || getTaiwanDate(), // Transaction Date (入帳日)
+                    entryDate: confirmModal.date || getTaiwanDate(), // Entry Date (入檔日)
+                    category: confirmModal.item.category || defaultCategory 
                 };
                 
                 setAirlines(prev => prev.map(a => {
                     if (a.id !== selectedAirlineId) return a;
-                    // FIX: Ensure lists exist
                     const pendingList = a.pending || [];
                     const recordsList = a.records || [];
                     return { ...a, pending: pendingList.filter(p => p.id !== confirmModal.item.id), records: [confirmedItem, ...recordsList] };
                 }));
                 closeConfirmModal(); showToast('哩程已正式入帳');
                 
-                // 確認入帳後也滑動到最上方
                 if(detailScrollRef.current) {
                     detailScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' });
                 }
@@ -926,24 +897,20 @@
                 setAirlines(newAirlines);
             };
 
-            // 複雜排序邏輯
             const sortedRecords = useMemo(() => {
                 if (!activeAirlineData) return [];
                 const records = [...(activeAirlineData.records || [])];
                 
                 return records.sort((a, b) => {
-                    // 輔助比較函式
                     const cmp = (valA, valB, dir) => {
                         if (valA < valB) return dir === 'asc' ? -1 : 1;
                         if (valA > valB) return dir === 'asc' ? 1 : -1;
                         return 0;
                     };
 
-                    // 準備所有需要的數值
                     const dir = sortConfig.direction;
                     const dateA = new Date(a.date).getTime();
                     const dateB = new Date(b.date).getTime();
-                    // 入檔日如果沒有，暫時用入帳日替代比較(或視為0)
                     const entryA = new Date(a.entryDate || a.date).getTime();
                     const entryB = new Date(b.entryDate || b.date).getTime();
                     const nameA = a.name.toLowerCase();
@@ -951,40 +918,15 @@
                     const amountA = parseInt(a.amount);
                     const amountB = parseInt(b.amount);
 
-                    // 1. 到期日排序
                     if (sortConfig.key === 'expiry') {
                         const expA = calculateExpiryDate(a.date, a.entryDate, activeAirlineData.expiryRule, activeAirlineData.records)?.getTime() || 0;
                         const expB = calculateExpiryDate(b.date, b.entryDate, activeAirlineData.expiryRule, activeAirlineData.records)?.getTime() || 0;
-                        
-                        return cmp(expA, expB, dir) || 
-                               cmp(dateA, dateB, dir) || 
-                               cmp(entryA, entryB, dir) || 
-                               cmp(nameA, nameB, dir) || 
-                               cmp(amountA, amountB, dir);
+                        return cmp(expA, expB, dir) || cmp(dateA, dateB, dir) || cmp(entryA, entryB, dir) || cmp(nameA, nameB, dir) || cmp(amountA, amountB, dir);
                     }
-                    
-                    // 2. 名稱排序
-                    if (sortConfig.key === 'name') {
-                        return cmp(nameA, nameB, dir) ||
-                               cmp(dateA, dateB, dir) ||
-                               cmp(entryA, entryB, dir) ||
-                               cmp(amountA, amountB, dir);
-                    }
+                    if (sortConfig.key === 'name') return cmp(nameA, nameB, dir) || cmp(dateA, dateB, dir) || cmp(entryA, entryB, dir) || cmp(amountA, amountB, dir);
+                    if (sortConfig.key === 'amount') return cmp(amountA, amountB, dir) || cmp(dateA, dateB, dir) || cmp(entryA, entryB, dir) || cmp(nameA, nameB, dir);
 
-                    // 3. 哩數排序
-                    if (sortConfig.key === 'amount') {
-                        return cmp(amountA, amountB, dir) ||
-                               cmp(dateA, dateB, dir) ||
-                               cmp(entryA, entryB, dir) ||
-                               cmp(nameA, nameB, dir);
-                    }
-
-                    // 4. 預設/入帳日排序 (date)
-                    // 規則：入帳日 -> 入檔日 -> 名稱 -> 哩程
-                    return cmp(dateA, dateB, dir) ||
-                           cmp(entryA, entryB, dir) ||
-                           cmp(nameA, nameB, dir) ||
-                           cmp(amountA, amountB, dir);
+                    return cmp(dateA, dateB, dir) || cmp(entryA, entryB, dir) || cmp(nameA, nameB, dir) || cmp(amountA, amountB, dir);
                 });
             }, [activeAirlineData, sortConfig]);
 
@@ -1048,14 +990,18 @@
                         React.createElement("button", {onClick: closeDetail, className: "pointer-events-auto w-10 h-10 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-slate-600 flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110 active:scale-95"}, React.createElement(ChevronLeft, {size: 20})),
                         React.createElement("button", {onClick: () => { setIsSettingsClosing(false); setIsSettingsOpen(true); }, className: "pointer-events-auto w-10 h-10 bg-white/80 backdrop-blur-md rounded-full shadow-lg text-slate-600 flex items-center justify-center hover:bg-white transition-all duration-300 hover:scale-110 active:scale-95"}, React.createElement(Settings, {size: 20}))
                     ),
-                    // 修正：加上 ref 以控制捲動
+                    
                     React.createElement("div", {ref: detailScrollRef, className: "flex-1 overflow-y-auto p-4 sm:p-6 space-y-6 max-w-3xl mx-auto w-full pt-24 relative pb-32"},
                         React.createElement("div", {className: "rounded-2xl shadow-xl mt-2 animate-in zoom-in-95 duration-500 w-full md:max-w-md mx-auto"}, React.createElement(AirlineCard, {airline: activeAirlineData, onClick: () => {}, isDetail: true})),
-                        // ... (Rest of Detail View remains same)
+                        
                         React.createElement("div", {className: "animate-in slide-in-from-bottom-8 fade-in duration-700 delay-100"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
-                                React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(TrendingUp, {size: 16, className: "text-orange-500"}), " 待入帳")
-                                // 移除舊的新增按鈕
+                                React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(TrendingUp, {size: 16, className: "text-orange-500"}), " 待入帳"),
+                                // 修正：待入帳區域標題旁的新增按鈕，改為簡單的圓形加號
+                                React.createElement("button", {
+                                    onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: { id: Date.now(), name: '', content: '', amount: '' } }); },
+                                    className: "w-8 h-8 rounded-full bg-orange-100 text-orange-600 flex items-center justify-center hover:bg-orange-200 transition-colors shadow-sm"
+                                }, React.createElement(Plus, {size: 16}))
                             ),
                             React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50 transition-all duration-500"},
                                 (activeAirlineData.pending || []).length === 0 && React.createElement("div", {className: "p-8 text-center text-gray-300 text-sm"}, "暫無待入帳項目"),
@@ -1069,7 +1015,8 @@
                                         React.createElement("button", {onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: item }); }, className: "p-2 text-gray-300 hover:text-blue-500 transition-colors rounded-full hover:bg-blue-50 active:scale-90"}, React.createElement(Edit3, {size: 18})),
                                         React.createElement("button", {onClick: () => setConfirmDialog({ isOpen: true, title: '確認刪除', message: '確定刪除？', onConfirm: () => executeDelete(item.id, 'pending') }), className: "p-2 text-gray-300 hover:text-red-500 transition-colors rounded-full hover:bg-red-50 active:scale-90"}, React.createElement(Trash2, {size: 18})),
                                         React.createElement("div", {className: "w-px h-6 bg-gray-200 mx-1"}),
-                                        React.createElement("button", {onClick: () => { setIsConfirmModalClosing(false); setConfirmModal({ isOpen: true, item: item, date: formatDateForInput(new Date()) }); }, className: "flex items-center gap-1.5 bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-slate-700 active:scale-95 transition-all shadow-md"}, React.createElement(ArrowDownCircle, {size: 14}), " 入帳")
+                                        // 修正：點擊入帳時，初始化兩個日期為今天
+                                        React.createElement("button", {onClick: () => { setIsConfirmModalClosing(false); setConfirmModal({ isOpen: true, item: item, date: formatDateForInput(new Date()), transactionDate: formatDateForInput(new Date()) }); }, className: "flex items-center gap-1.5 bg-slate-800 text-white text-xs font-bold px-3 py-1.5 rounded-lg hover:bg-slate-700 active:scale-95 transition-all shadow-md"}, React.createElement(ArrowDownCircle, {size: 14}), " 入帳")
                                     )
                                 ))
                             )
@@ -1077,8 +1024,12 @@
 
                         React.createElement("div", {className: "pb-10 animate-in slide-in-from-bottom-8 fade-in duration-700 delay-200"},
                             React.createElement("div", {className: "flex items-center justify-between mb-3 px-2"},
-                                React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(History, {size: 16, className: "text-blue-500"}), " 明細紀錄")
-                                // 移除舊的新增按鈕
+                                React.createElement("h3", {className: "text-sm font-bold text-slate-500 uppercase tracking-wider flex items-center gap-2"}, React.createElement(History, {size: 16, className: "text-blue-500"}), " 明細紀錄"),
+                                // 修正：明細紀錄區域標題旁的新增按鈕，改為簡單的圓形加號
+                                React.createElement("button", {
+                                    onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: { id: Date.now(), name: '', content: '', amount: '', date: getTaiwanDate(), entryDate: getTaiwanDate(), category: (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '' } }); },
+                                    className: "w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center hover:bg-blue-200 transition-colors shadow-sm"
+                                }, React.createElement(Plus, {size: 16}))
                             ),
                             React.createElement("div", {className: "bg-white/50 backdrop-blur-sm rounded-xl p-2 mb-3 flex justify-between items-center text-xs overflow-x-auto no-scrollbar"},
                                 ['date|入帳日', 'expiry|到期日', 'name|名稱', 'amount|哩數'].map(opt => {
@@ -1090,43 +1041,34 @@
                             React.createElement("div", {className: "bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden divide-y divide-gray-50 transition-all duration-500"},
                                 sortedRecords.length === 0 && React.createElement("div", {className: "p-8 text-center text-gray-300 text-sm"}, "暫無里程紀錄"),
                                 sortedRecords.slice(0, visibleCount).map(item => {
-                                    // Pass both transactionDate (item.date) and entryDate (item.entryDate)
                                     const expiryInfo = calculateExpiryDisplay(item.date, item.entryDate, activeAirlineData.expiryRule, activeAirlineData.records, item.amount);
                                     const isNegative = item.amount < 0;
-                                    // FIX 3: Defensive access to categoryColors
                                     const categoryColors = activeAirlineData.categoryColors || {};
                                     const categoryColorClass = categoryColors[item.category] || 'bg-gray-100 text-gray-800';
                                     
                                     return React.createElement("div", {key: item.id, className: "p-4 transition-colors duration-300 hover:bg-blue-50/30 group border-b border-gray-50 last:border-0"},
                                         
-                                        // Row 1: Category + Name
                                         React.createElement("div", {className: "flex items-center gap-2 mb-2"},
                                             item.category && React.createElement("span", {className: `px-2 py-0.5 rounded-full text-[10px] font-bold shrink-0 truncate ${categoryColorClass}`}, item.category),
                                             React.createElement("span", {className: "text-base font-bold text-slate-800 truncate flex-1"}, item.name)
                                         ),
 
-                                        // Row 2: Content (Left) + Miles (Right)
                                         React.createElement("div", {className: "flex justify-between items-start mb-2"},
                                             React.createElement("div", {className: "text-sm text-slate-500 font-medium leading-relaxed break-words mr-4 flex-1"}, item.content || ''),
                                             React.createElement("div", {className: `text-lg font-mono font-bold leading-none shrink-0 ${isNegative ? 'text-slate-600' : 'text-blue-600'}`}, formatAmountDisplay(item.amount))
                                         ),
 
-                                        // Row 3: Dates (Left) + Actions (Right)
                                         React.createElement("div", {className: "flex justify-between items-center"},
-                                            // Dates Container
                                             React.createElement("div", {className: "flex flex-wrap items-center gap-2"},
-                                                // Transaction Date
                                                 React.createElement("span", {className: "flex items-center gap-1 bg-gray-50 text-gray-500 px-2 py-0.5 rounded-md text-[10px] border border-gray-100"}, 
                                                     React.createElement(Calendar, {size: 10, className: "opacity-70"}), 
                                                     "入帳 ", formatDateForDisplay(item.date)
                                                 ),
-                                                // Expiry Date
                                                 expiryInfo.text && React.createElement("span", {className: `flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] border border-transparent ${expiryInfo.color}`}, 
                                                     React.createElement(Clock, {size: 10, className: "opacity-70"}), 
                                                     "到期 ", expiryInfo.text
                                                 )
                                             ),
-                                            // Actions Container
                                             React.createElement("div", {className: "flex items-center gap-1 opacity-30 group-hover:opacity-100 transition-opacity duration-200"},
                                                 React.createElement("button", {
                                                     onClick: () => { setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: item }); }, 
@@ -1141,7 +1083,6 @@
                                     );
                                 })
                             ),
-                             // 查看更多按鈕：每次增加 15 筆
                             visibleCount < sortedRecords.length && React.createElement("button", {
                                 onClick: () => setVisibleCount(prev => prev + 15),
                                 className: "w-full mt-4 py-3 bg-white border border-gray-200 text-slate-500 font-bold rounded-xl hover:bg-gray-50 transition-colors shadow-sm"
@@ -1167,7 +1108,6 @@
                             )
                         ),
                         
-                        // 新增：匯入 CSV 按鈕
                         React.createElement("div", {className: "space-y-3 pt-4 border-t border-gray-100"},
                             React.createElement("label", {className: "text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 mb-2"}, React.createElement(Upload, {size: 12}), " 資料匯入"),
                             React.createElement("input", {type: "file", ref: fileInputRef, onChange: handleFileChange, accept: ".csv", className: "hidden"}),
@@ -1181,7 +1121,6 @@
                     )
                 ),
 
-                // ... (Editor, Confirm Modal same as v1.6)
                 React.createElement(AddAirlineModal, { isOpen: isAddAirlineOpen, onClose: () => setIsAddAirlineOpen(false), onSelect: handleAddAirline, templates: airlineTemplates, isAdmin: isAdmin, onOpenAdmin: () => { setIsAddAirlineOpen(false); setIsAdminModalOpen(true); } }),
                 React.createElement(ReorderModal, { isOpen: isReorderOpen, onClose: () => setIsReorderOpen(false), items: airlines, onMove: moveCard }),
                 React.createElement(AdminTemplateModal, { isOpen: isAdminModalOpen, onClose: () => setIsAdminModalOpen(false), templates: airlineTemplates, onSave: handleSaveTemplates }),
@@ -1190,19 +1129,16 @@
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isEditorClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
                         React.createElement("h3", {className: "text-lg font-bold text-slate-800 mb-6 border-b border-gray-100 pb-3"}, editorState.type === 'record' ? '編輯哩程紀錄' : '編輯待入帳項目'),
                         React.createElement("div", {className: "space-y-4"},
-                            // FIX 1: Allow showing category selector for both 'record' and 'pending' types
                             (editorState.type === 'record' || editorState.type === 'pending') && activeAirlineData.categoryOptions && activeAirlineData.categoryOptions.length > 0 && 
                             React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "類別"), 
                                 React.createElement(CustomSelect, {value: editorState.data.category || (activeAirlineData.categoryOptions[0] || ''), options: activeAirlineData.categoryOptions, onChange: val => setEditorState({...editorState, data: {...editorState.data, category: val}})}
                                 )
                             ),
                             
-                            // Split 'name' into 'name' and 'content'
                             React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "名稱"), React.createElement("input", {value: editorState.data.name, onChange: e => setEditorState({...editorState, data: {...editorState.data, name: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "例如: 台北-東京", autoFocus: true, autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_name_random_string"})),
 
                             React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "內容 (選填)"), React.createElement("input", {value: editorState.data.content || '', onChange: e => setEditorState({...editorState, data: {...editorState.data, content: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "例如: JAL JL802", autoComplete: "off", autoCorrect: "off", spellCheck: "false", name: "record_content_random_string"})),
 
-                            // Amount remains the same
                             React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "哩程數額"), React.createElement("input", {type: "number", value: editorState.data.amount, onChange: e => setEditorState({...editorState, data: {...editorState.data, amount: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-mono font-bold text-lg text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow", placeholder: "0", autoComplete: "off", name: "record_amount_random_string"})),
 
                             editorState.type === 'record' && React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block"}, "入帳日期 (顯示用)"), React.createElement("input", {type: "date", value: editorState.data.date, onChange: e => setEditorState({...editorState, data: {...editorState.data, date: e.target.value}}), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-blue-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})),
@@ -1215,6 +1151,8 @@
                         )
                     )
                 ),
+                
+                // 修正：確認入帳對話框，增加兩個日期的輸入欄位
                 confirmModal.isOpen && React.createElement("div", {className: `fixed inset-0 z-[80] flex items-center justify-center bg-black/60 backdrop-blur-sm transition-opacity duration-300 ${isConfirmModalClosing ? 'opacity-0' : 'animate-in fade-in opacity-100'}`},
                     React.createElement("div", {className: `bg-white w-full max-w-xs m-4 rounded-3xl p-6 shadow-2xl transition-all duration-300 transform ${isConfirmModalClosing ? 'scale-95 translate-y-4' : 'scale-100 animate-in zoom-in-95'}`},
                         React.createElement("h3", {className: "text-lg font-bold text-slate-900 mb-2 border-b border-gray-100 pb-3 flex items-center gap-2"}, React.createElement(CheckCircle2, {size: 20, className: "text-green-500"}), " 確認入帳"),
@@ -1224,7 +1162,18 @@
                                 confirmModal.item?.content && React.createElement("p", {className: "text-xs text-slate-500 font-medium mt-0.5"}, confirmModal.item?.content),
                                 React.createElement("p", {className: "text-xs text-orange-500 font-bold mt-1"}, formatAmountDisplay(confirmModal.item?.amount), " Miles")
                             ),
-                            React.createElement("div", null, React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block flex items-center gap-1"}, React.createElement(CalendarDays, {size: 12}), " 選擇入檔日期 (效期計算基準)"), React.createElement("input", {type: "date", value: confirmModal.date, onChange: e => setConfirmModal({ ...confirmModal, date: e.target.value }), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}}))
+                            
+                            // 新增：入帳日期輸入
+                            React.createElement("div", null, 
+                                React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block flex items-center gap-1"}, React.createElement(Calendar, {size: 12}), " 入帳日期 (實際消費/搭乘日)"), 
+                                React.createElement("input", {type: "date", value: confirmModal.transactionDate, onChange: e => setConfirmModal({ ...confirmModal, transactionDate: e.target.value }), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})
+                            ),
+
+                            // 原有：入檔日期輸入
+                            React.createElement("div", null, 
+                                React.createElement("label", {className: "text-xs font-bold text-slate-400 mb-1 block flex items-center gap-1"}, React.createElement(CalendarDays, {size: 12}), " 入檔日期 (里程入戶日/效期基準)"), 
+                                React.createElement("input", {type: "date", value: confirmModal.date, onChange: e => setConfirmModal({ ...confirmModal, date: e.target.value }), className: "w-full bg-slate-50 border border-gray-200 rounded-xl px-4 py-3 font-medium text-slate-800 focus:ring-2 focus:ring-green-500 outline-none transition-shadow appearance-none", style: {minHeight:'48px'}})
+                            )
                         ),
                         React.createElement("div", {className: "flex gap-3 mt-6"},
                             React.createElement("button", {onClick: closeConfirmModal, className: "flex-1 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 transition-colors"}, "取消"),
@@ -1233,21 +1182,17 @@
                     )
                 ),
 
-                // 新增：懸浮按鈕群組 (Floating Action Button)
                 selectedAirlineId && React.createElement("div", {className: "fixed bottom-6 right-6 z-[60] flex flex-col items-end gap-3"},
-                    // 子按鈕：新增紀錄 (藍色)
                     isFabOpen && React.createElement("button", {
                         onClick: () => { setIsFabOpen(false); setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'record', data: { id: Date.now(), name: '', content: '', amount: '', date: getTaiwanDate(), entryDate: getTaiwanDate(), category: (activeAirlineData.categoryOptions && activeAirlineData.categoryOptions[0]) || '' } }); },
                         className: "flex items-center gap-2 pr-4 pl-2 py-2 bg-blue-600 text-white rounded-full shadow-lg hover:bg-blue-700 transition-all animate-in slide-in-from-bottom-2 fade-in duration-200"
                     }, React.createElement("div", {className:"p-1 bg-white/20 rounded-full"}, React.createElement(Plus, {size: 16})), React.createElement("span", {className:"text-sm font-bold"}, "新增紀錄")),
                     
-                    // 子按鈕：新增待入帳 (橘色)
                     isFabOpen && React.createElement("button", {
                         onClick: () => { setIsFabOpen(false); setIsEditorClosing(false); setEditorState({ isOpen: true, type: 'pending', data: { id: Date.now(), name: '', content: '', amount: '' } }); },
                         className: "flex items-center gap-2 pr-4 pl-2 py-2 bg-orange-500 text-white rounded-full shadow-lg hover:bg-orange-600 transition-all animate-in slide-in-from-bottom-2 fade-in duration-200 delay-75"
                     }, React.createElement("div", {className:"p-1 bg-white/20 rounded-full"}, React.createElement(TrendingUp, {size: 16})), React.createElement("span", {className:"text-sm font-bold"}, "新增待入帳")),
 
-                    // 主按鈕 (+)
                     React.createElement("button", {
                         onClick: () => setIsFabOpen(!isFabOpen),
                         className: `w-14 h-14 rounded-full shadow-2xl flex items-center justify-center transition-all duration-300 ${isFabOpen ? 'bg-slate-800 rotate-45' : 'bg-slate-900 hover:scale-110 active:scale-95'}`
